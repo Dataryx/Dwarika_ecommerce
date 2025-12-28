@@ -406,15 +406,15 @@ function App() {
       <div
         className={`relative min-h-[90vh] flex items-center justify-center overflow-hidden ${
         darkMode
-            ? "bg-gradient-to-br from-gray-900 via-indigo-900 to-gray-900"
-            : "bg-gradient-to-br from-amber-50 via-stone-50 to-indigo-50"
+            ? "bg-gradient-to-br from-gray-900 via-rose-900 to-gray-900"
+            : "bg-gradient-to-br from-amber-50 via-stone-50 to-rose-50"
         }`}
       >
         {/* Animated Background */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-400 rounded-full opacity-20 blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-700 rounded-full opacity-20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-amber-400 to-indigo-400 rounded-full opacity-10 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-300 rounded-full opacity-30 blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-amber-400 to-rose-400 rounded-full opacity-10 blur-3xl"></div>
         </div>
 
         {/* Hero Content */}
@@ -765,13 +765,13 @@ function App() {
         icon: <Users className="w-6 h-6" />,
         value: "10K+",
         label: "Happy Customers",
-        color: "from-indigo-500 to-indigo-700",
+        color: "from-rose-400 to-rose-500",
       },
       {
         icon: <TrendingUp className="w-6 h-6" />,
         value: "5★",
         label: "Average Rating",
-        color: "from-blue-400 to-blue-600",
+        color: "from-amber-500 to-amber-700",
       },
       {
         icon: <Sparkles className="w-6 h-6" />,
@@ -785,8 +785,8 @@ function App() {
       <div
         className={`py-12 relative overflow-hidden ${
           darkMode
-            ? "bg-gradient-to-br from-gray-900 via-indigo-900 to-gray-900"
-            : "bg-gradient-to-br from-indigo-700 via-indigo-800 to-indigo-900"
+            ? "bg-gradient-to-br from-gray-900 via-rose-400 to-gray-900"
+            : "bg-gradient-to-br from-rose-200 via-rose-300 to-rose-400"
         }`}
       >
         <div className="absolute inset-0 opacity-10">
@@ -795,10 +795,14 @@ function App() {
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h2 className={`text-3xl md:text-4xl font-bold mb-2 ${
+              darkMode ? "text-white" : "text-gray-900"
+            }`}>
               Our Achievements
             </h2>
-            <p className="text-base text-indigo-100">
+            <p className={`text-base ${
+              darkMode ? "text-rose-100" : "text-gray-700"
+            }`}>
               Trusted by thousands of satisfied customers
             </p>
           </div>
@@ -806,17 +810,25 @@ function App() {
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="bg-white/10 backdrop-blur-lg rounded-xl p-6 text-center border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105"
+                className={`rounded-xl p-6 text-center border transition-all duration-300 transform hover:scale-105 ${
+                  darkMode 
+                    ? "bg-white/10 backdrop-blur-lg border-white/20 hover:bg-white/20"
+                    : "bg-white/80 backdrop-blur-lg border-rose-200 hover:bg-white shadow-lg"
+                }`}
               >
                 <div
                   className={`inline-flex p-3 rounded-full bg-gradient-to-r ${stat.color} text-white mb-3`}
                 >
                   {stat.icon}
                 </div>
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">
+                <div className={`text-3xl md:text-4xl font-bold mb-1 ${
+                  darkMode ? "text-white" : "text-gray-900"
+                }`}>
                   {stat.value}
                 </div>
-                <div className="text-sm md:text-base text-indigo-100">{stat.label}</div>
+                <div className={`text-sm md:text-base ${
+                  darkMode ? "text-rose-100" : "text-gray-700"
+                }`}>{stat.label}</div>
               </div>
             ))}
           </div>
@@ -837,7 +849,7 @@ function App() {
         {/* Decorative Background Elements */}
         <div className="absolute inset-0 overflow-hidden opacity-20">
           <div className="absolute top-20 left-10 w-64 h-64 bg-amber-300 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-64 h-64 bg-indigo-300 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-64 h-64 bg-rose-300 rounded-full blur-3xl"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -962,8 +974,8 @@ function App() {
   const Footer = () => (
     <footer
       className={`${
-        darkMode ? "bg-gray-900" : "bg-indigo-900"
-      } text-white py-12`}
+        darkMode ? "bg-gray-900 text-white" : "bg-rose-400 text-white"
+      } py-12`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -974,17 +986,17 @@ function App() {
               </div>
               <h3 className="text-3xl font-bold text-yellow-400">Dwarika</h3>
             </div>
-            <p className="text-gray-300">
+            <p className={darkMode ? "text-gray-300" : "text-white/90"}>
               Your trusted partner for exquisite gold jewelry since 1990.
             </p>
           </div>
           <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">Quick Links</h4>
             <ul className="space-y-2">
               <li>
                 <button
                   onClick={() => setCurrentPage("home")}
-                  className="text-gray-300 hover:text-yellow-400"
+                  className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}
                 >
                   Home
                 </button>
@@ -992,7 +1004,7 @@ function App() {
               <li>
                 <button
                   onClick={() => setCurrentPage("about")}
-                  className="text-gray-300 hover:text-yellow-400"
+                  className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}
                 >
                   About Us
                 </button>
@@ -1000,7 +1012,7 @@ function App() {
               <li>
                 <button
                   onClick={() => setCurrentPage("contact")}
-                  className="text-gray-300 hover:text-yellow-400"
+                  className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}
                 >
                   Contact
                 </button>
@@ -1008,7 +1020,7 @@ function App() {
               <li>
                 <button
                   onClick={() => setCurrentPage("products")}
-                  className="text-gray-300 hover:text-yellow-400"
+                  className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}
                 >
                   Products
                 </button>
@@ -1016,49 +1028,49 @@ function App() {
             </ul>
           </div>
           <div>
-            <h4 className="text-lg font-semibold mb-4">Categories</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">Categories</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-300 hover:text-yellow-400">
+                <a href="#" className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}>
                   Necklaces
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-yellow-400">
+                <a href="#" className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}>
                   Rings
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-yellow-400">
+                <a href="#" className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}>
                   Bangles
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-yellow-400">
+                <a href="#" className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-white/90 hover:text-yellow-300"}>
                   Earrings
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="text-lg font-semibold mb-4">Contact Info</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">Contact Info</h4>
             <ul className="space-y-3">
               <li className="flex items-center space-x-2">
                 <Phone className="w-5 h-5 text-yellow-400" />
-                <span className="text-gray-300">+977 1234567890</span>
+                <span className={darkMode ? "text-gray-300" : "text-white/90"}>+977 1234567890</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="w-5 h-5 text-yellow-400" />
-                <span className="text-gray-300">info@dwarika.com</span>
+                <span className={darkMode ? "text-gray-300" : "text-white/90"}>info@dwarika.com</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="w-5 h-5 text-yellow-400" />
-                <span className="text-gray-300">Patan, Nepal</span>
+                <span className={darkMode ? "text-gray-300" : "text-white/90"}>Patan, Nepal</span>
               </li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-indigo-800 mt-8 pt-8 text-center text-gray-400">
+        <div className={`border-t ${darkMode ? "border-gray-700" : "border-white/30"} mt-8 pt-8 text-center ${darkMode ? "text-gray-400" : "text-white/90"}`}>
           <p>&copy; 2025 Dwarika Gold Shop. All rights reserved.</p>
         </div>
       </div>
