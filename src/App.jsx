@@ -48,7 +48,32 @@ const testimonials = [
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
-  const [currentPage, setCurrentPage] = useState("home");
+  const [currentPage, setCurrentPage] = useState(() => {
+    try {
+      const path = window.location.pathname || '/';
+      if (!path || path === '/') return 'home';
+      if (path.startsWith('/products')) return 'products';
+      if (path.startsWith('/cart')) return 'cart';
+      if (path.startsWith('/checkout')) return 'checkout';
+      if (path.startsWith('/payment')) return 'payment';
+      if (path.startsWith('/order-success')) return 'orderSuccess';
+      if (path.startsWith('/profile')) return 'profile';
+      if (path.startsWith('/my-orders')) return 'myOrders';
+      if (path.startsWith('/order')) return 'orderDetail';
+      if (path.startsWith('/about')) return 'about';
+      if (path.startsWith('/contact')) return 'contact';
+      if (path.startsWith('/search')) return 'search';
+      if (path.startsWith('/login')) return 'login';
+      if (path.startsWith('/register-success')) return 'registerSuccess';
+      if (path.startsWith('/register')) return 'register';
+      if (path.startsWith('/verify')) return 'verify';
+      if (path.startsWith('/set-password')) return 'setPassword';
+      if (path.startsWith('/admin')) return 'admin';
+      return 'home';
+    } catch (e) {
+      return 'home';
+    }
+  });
   const [searchQuery, setSearchQuery] = useState(""); // Committed search term
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cart, setCart] = useState([]); // Cart items: [{product, quantity}, ...]

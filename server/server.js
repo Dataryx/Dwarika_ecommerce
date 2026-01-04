@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 // Import routes
 import productRoutes from './routes/products.js';
@@ -86,6 +87,22 @@ app.use('/api/upload', uploadRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
+
+// Serve frontend static files if built (supports SPA refresh on non-root paths)
+try {
+  const clientDist = path.join(__dirname, '..', 'dist');
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    app.get('*', (req, res, next) => {
+      // don't handle API routes
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+    console.log('Serving frontend from', clientDist);
+  }
+} catch (e) {
+  // ignore
+}
 
 const PORT = process.env.PORT || 5000;
 

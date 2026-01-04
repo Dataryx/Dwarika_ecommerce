@@ -1932,7 +1932,18 @@ import {
 const API_URL = 'http://localhost:5000/api';
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const path = window.location.pathname || '';
+      const parts = path.split('/').filter(Boolean);
+      if (parts[0] === 'admin' && parts[1]) return parts[1];
+      const saved = localStorage.getItem('adminActiveTab');
+      if (saved) return saved;
+    } catch (e) {
+      // ignore
+    }
+    return 'dashboard';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('adminToken'));
   const [user, setUser] = useState(null);
@@ -2019,6 +2030,42 @@ function AdminDashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Initialize activeTab from URL (e.g., /admin/products) so refresh preserves subsection
+  useEffect(() => {
+    try {
+      const path = window.location.pathname || '';
+      const parts = path.split('/').filter(Boolean); // ['admin', 'products']
+      if (parts[0] === 'admin' && parts[1]) {
+        setActiveTab(parts[1]);
+        // persist chosen tab
+        try { localStorage.setItem('adminActiveTab', parts[1]); } catch (e) {}
+      } else {
+        // fallback to previously chosen tab stored in localStorage
+        try {
+          const saved = localStorage.getItem('adminActiveTab');
+          if (saved) setActiveTab(saved);
+        } catch (e) {}
+      }
+    } catch (e) {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync activeTab -> URL and persist it so refresh keeps subsection
+  useEffect(() => {
+    try {
+      const expected = `/admin/${activeTab}`;
+      if (window.location.pathname !== expected) {
+        // Use pushState so navigation is reflected in history
+        window.history.pushState({}, document.title, expected);
+      }
+      try { localStorage.setItem('adminActiveTab', activeTab); } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (user && user.role === 'admin') {
