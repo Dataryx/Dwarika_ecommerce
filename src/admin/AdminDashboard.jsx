@@ -771,7 +771,7 @@
 //                     <TrendingUp className="w-5 h-5 opacity-80" />
 //                   </div>
 //                   <div className="text-amber-100 text-sm font-medium mb-1">Total Revenue</div>
-//                   <div className="text-3xl font-bold mb-1">₹{stats.totalRevenue.toLocaleString()}</div>
+//                   <div className="text-3xl font-bold mb-1">रु{stats.totalRevenue.toLocaleString()}</div>
 //                   <div className="text-amber-100 text-xs">All time sales</div>
 //                 </div>
 
@@ -827,7 +827,7 @@
 //                   <div className="flex items-center justify-between">
 //                     <div>
 //                       <div className="text-gray-500 text-sm font-medium mb-1">Today's Revenue</div>
-//                       <div className="text-2xl font-bold text-gray-800">₹{stats.todayRevenue.toLocaleString()}</div>
+//                       <div className="text-2xl font-bold text-gray-800">रु{stats.todayRevenue.toLocaleString()}</div>
 //                     </div>
 //                     <div className="bg-green-100 p-3 rounded-lg">
 //                       <TrendingUp className="w-5 h-5 text-green-600" />
@@ -839,7 +839,7 @@
 //                   <div className="flex items-center justify-between">
 //                     <div>
 //                       <div className="text-gray-500 text-sm font-medium mb-1">Monthly Revenue</div>
-//                       <div className="text-2xl font-bold text-gray-800">₹{stats.monthlyRevenue.toLocaleString()}</div>
+//                       <div className="text-2xl font-bold text-gray-800">रु{stats.monthlyRevenue.toLocaleString()}</div>
 //                     </div>
 //                     <div className="bg-blue-100 p-3 rounded-lg">
 //                       <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -851,7 +851,7 @@
 //                   <div className="flex items-center justify-between">
 //                     <div>
 //                       <div className="text-gray-500 text-sm font-medium mb-1">Avg Order Value</div>
-//                       <div className="text-2xl font-bold text-gray-800">₹{stats.averageOrderValue.toLocaleString()}</div>
+//                       <div className="text-2xl font-bold text-gray-800">रु{stats.averageOrderValue.toLocaleString()}</div>
 //                     </div>
 //                     <div className="bg-purple-100 p-3 rounded-lg">
 //                       <PieChart className="w-5 h-5 text-purple-600" />
@@ -933,7 +933,7 @@
 //                             <div className="text-sm text-gray-500">{product.orderCount || 0} orders</div>
 //                           </div>
 //                           <div className="text-right">
-//                             <div className="font-bold text-gray-800">₹{(product.price || 0).toLocaleString()}</div>
+//                             <div className="font-bold text-gray-800">रु{(product.price || 0).toLocaleString()}</div>
 //                           </div>
 //                         </div>
 //                       ))
@@ -982,7 +982,7 @@
 //                                 <div className="text-xs text-gray-500">{order.user?.email || ''}</div>
 //                               </td>
 //                               <td className="py-3 px-4">
-//                                 <span className="font-semibold text-gray-800">₹{(order.total || 0).toLocaleString()}</span>
+//                                 <span className="font-semibold text-gray-800">रु{(order.total || 0).toLocaleString()}</span>
 //                               </td>
 //                               <td className="py-3 px-4">
 //                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.orderStatus] || 'bg-gray-100 text-gray-800'}`}>
@@ -1096,10 +1096,10 @@
 //                       <div className="grid grid-cols-2 gap-6">
 //                         <div>
 //                           <label className="block text-sm font-semibold text-gray-700 mb-2">
-//                             Price (₹) <span className="text-red-500">*</span>
+//                             Price (रु) <span className="text-red-500">*</span>
 //                           </label>
 //                           <div className="relative">
-//                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
+//                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">रु</span>
 //                             <input
 //                               type="number"
 //                               value={productForm.price}
@@ -1111,9 +1111,9 @@
 //                           </div>
 //                         </div>
 //                         <div>
-//                           <label className="block text-sm font-semibold text-gray-700 mb-2">Original Price (₹)</label>
+//                           <label className="block text-sm font-semibold text-gray-700 mb-2">Original Price (रु)</label>
 //                           <div className="relative">
-//                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
+//                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">रु</span>
 //                             <input
 //                               type="number"
 //                               value={productForm.originalPrice}
@@ -1290,7 +1290,7 @@
 //                           <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded" />
 //                         </td>
 //                         <td className="px-4 py-3 font-medium">{product.name}</td>
-//                         <td className="px-4 py-3">₹{product.price?.toLocaleString()}</td>
+//                         <td className="px-4 py-3">रु{product.price?.toLocaleString()}</td>
 //                         <td className="px-4 py-3">{product.stock}</td>
 //                         <td className="px-4 py-3">
 //                           <span className={`px-2 py-1 rounded text-xs ${
@@ -1589,7 +1589,7 @@
 //                           </div>
 //                         </td>
 //                         <td className="px-4 py-3">{order.items?.length || 0} items</td>
-//                         <td className="px-4 py-3 font-medium">₹{order.total?.toLocaleString()}</td>
+//                         <td className="px-4 py-3 font-medium">रु{order.total?.toLocaleString()}</td>
 //                         <td className="px-4 py-3">
 //                           <select
 //                             value={order.orderStatus}
@@ -1658,14 +1658,14 @@
 //                                 <div className="font-medium">{item.name}</div>
 //                                 <div className="text-sm text-gray-500">Qty: {item.quantity}</div>
 //                               </div>
-//                               <div>₹{(item.price * item.quantity).toLocaleString()}</div>
+//                               <div>रु{(item.price * item.quantity).toLocaleString()}</div>
 //                             </div>
 //                           ))}
 //                         </div>
 //                       </div>
 //                       <div className="flex justify-between font-bold text-lg pt-2">
 //                         <span>Total:</span>
-//                         <span>₹{selectedOrder.total?.toLocaleString()}</span>
+//                         <span>रु{selectedOrder.total?.toLocaleString()}</span>
 //                       </div>
 //                     </div>
 //                   </div>
@@ -2267,8 +2267,8 @@ function AdminDashboard() {
           <tr>
             <td style="padding:8px;border:1px solid #ddd">${i.name || ''}</td>
             <td style="padding:8px;border:1px solid #ddd;text-align:center">${i.quantity}</td>
-            <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${(i.price||0).toLocaleString()}</td>
-            <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${((i.price||0)*(i.quantity||1)).toLocaleString()}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right">रु${(i.price||0).toLocaleString()}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right">रु${((i.price||0)*(i.quantity||1)).toLocaleString()}</td>
           </tr>`).join('');
 
         const html = `
@@ -2314,9 +2314,9 @@ function AdminDashboard() {
               </table>
 
               <div style="margin-top:18px;text-align:right">
-                <div>Subtotal: ₹${(order.subtotal||0).toLocaleString()}</div>
-                <div>Shipping: ₹${(order.shipping||0).toLocaleString()}</div>
-                <div style="font-weight:700;margin-top:6px">Total: ₹${(order.total||0).toLocaleString()}</div>
+                <div>Subtotal: रु${(order.subtotal||0).toLocaleString()}</div>
+                <div>Shipping: रु${(order.shipping||0).toLocaleString()}</div>
+                <div style="font-weight:700;margin-top:6px">Total: रु${(order.total||0).toLocaleString()}</div>
               </div>
 
               <h4 style="margin-top:22px">Shipping Address</h4>
@@ -2819,7 +2819,7 @@ function AdminDashboard() {
                     <TrendingUp className="w-5 h-5 opacity-80" />
                   </div>
                   <div className="text-amber-100 text-sm font-medium mb-1">Total Revenue</div>
-                  <div className="text-3xl font-bold mb-1">₹{stats.totalRevenue.toLocaleString()}</div>
+                  <div className="text-3xl font-bold mb-1">रु{stats.totalRevenue.toLocaleString()}</div>
                   <div className="text-amber-100 text-xs">All time sales</div>
                 </div>
 
@@ -2875,7 +2875,7 @@ function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-gray-500 text-sm font-medium mb-1">Today's Revenue</div>
-                      <div className="text-2xl font-bold text-gray-800">₹{stats.todayRevenue.toLocaleString()}</div>
+                      <div className="text-2xl font-bold text-gray-800">रु{stats.todayRevenue.toLocaleString()}</div>
                     </div>
                     <div className="bg-green-100 p-3 rounded-lg">
                       <TrendingUp className="w-5 h-5 text-green-600" />
@@ -2888,7 +2888,7 @@ function AdminDashboard() {
                     <div>
                       <div className="text-gray-500 text-sm font-medium mb-1">Monthly Revenue</div>
                       <div className="text-2xl font-bold text-gray-800">
-                        ₹{stats.monthlyRevenue.toLocaleString()}
+                        रु{stats.monthlyRevenue.toLocaleString()}
                       </div>
                     </div>
                     <div className="bg-blue-100 p-3 rounded-lg">
@@ -2902,7 +2902,7 @@ function AdminDashboard() {
                     <div>
                       <div className="text-gray-500 text-sm font-medium mb-1">Avg Order Value</div>
                       <div className="text-2xl font-bold text-gray-800">
-                        ₹{stats.averageOrderValue.toLocaleString()}
+                        रु{stats.averageOrderValue.toLocaleString()}
                       </div>
                     </div>
                     <div className="bg-purple-100 p-3 rounded-lg">
@@ -2998,7 +2998,7 @@ function AdminDashboard() {
                           </div>
                           <div className="text-right">
                             <div className="font-bold text-gray-800">
-                              ₹{(product.price || 0).toLocaleString()}
+                              रु{(product.price || 0).toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -3049,7 +3049,7 @@ function AdminDashboard() {
                               </td>
                               <td className="py-3 px-4">
                                 <span className="font-semibold text-gray-800">
-                                  ₹{(order.total || 0).toLocaleString()}
+                                  रु{(order.total || 0).toLocaleString()}
                                 </span>
                               </td>
                               <td className="py-3 px-4">
@@ -3170,11 +3170,11 @@ function AdminDashboard() {
                         <div className="grid grid-cols-2 gap-6">
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              Price (₹) <span className="text-red-500">*</span>
+                              Price (रु) <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
-                                ₹
+                                रु
                               </span>
                               <input
                                 type="number"
@@ -3188,10 +3188,10 @@ function AdminDashboard() {
                           </div>
 
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Original Price (₹)</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Original Price (रु)</label>
                             <div className="relative">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
-                                ₹
+                                रु
                               </span>
                               <input
                                 type="number"
@@ -3369,7 +3369,7 @@ function AdminDashboard() {
                           <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded" />
                         </td>
                         <td className="px-4 py-3 font-medium">{product.name}</td>
-                        <td className="px-4 py-3">₹{product.price?.toLocaleString()}</td>
+                        <td className="px-4 py-3">रु{product.price?.toLocaleString()}</td>
                         <td className="px-4 py-3">{product.stock}</td>
                         <td className="px-4 py-3">
                           <span
@@ -3668,7 +3668,7 @@ function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-3">{order.items?.length || 0} items</td>
-                        <td className="px-4 py-3 font-medium">₹{order.total?.toLocaleString()}</td>
+                        <td className="px-4 py-3 font-medium">रु{order.total?.toLocaleString()}</td>
                         <td className="px-4 py-3">
                           <select
                             value={order.orderStatus}
@@ -3746,14 +3746,14 @@ function AdminDashboard() {
                                 <div className="font-medium">{item.name}</div>
                                 <div className="text-sm text-gray-500">Qty: {item.quantity}</div>
                               </div>
-                              <div>₹{(item.price * item.quantity).toLocaleString()}</div>
+                              <div>रु{(item.price * item.quantity).toLocaleString()}</div>
                             </div>
                           ))}
                         </div>
                       </div>
                       <div className="flex justify-between font-bold text-lg pt-2">
                         <span>Total:</span>
-                        <span>₹{selectedOrder.total?.toLocaleString()}</span>
+                        <span>रु{selectedOrder.total?.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

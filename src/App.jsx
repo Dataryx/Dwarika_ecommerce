@@ -1242,7 +1242,7 @@ function App() {
                   </div>
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                    ₹{product.price.toLocaleString()}
+                    रु{product.price.toLocaleString()}
                   </p>
                     <button className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                       darkMode 
@@ -1864,7 +1864,7 @@ function App() {
                   </span>
                 </div>
                 <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-6">
-                  ₹{selectedProduct.price.toLocaleString()}
+                  रु{selectedProduct.price.toLocaleString()}
                 </p>
               </div>
 
@@ -1934,7 +1934,7 @@ function App() {
                   className="flex-1 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  Add to Cart - ₹{(selectedProduct.price * quantity).toLocaleString()}
+                  Add to Cart - रु{(selectedProduct.price * quantity).toLocaleString()}
                 </button>
               </div>
             </div>
@@ -2019,7 +2019,7 @@ function App() {
                       ))}
                     </div>
                     <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-4">
-                      ₹{product.price.toLocaleString()}
+                      रु{product.price.toLocaleString()}
                     </p>
                     <button
                       onClick={() => {
@@ -2111,7 +2111,7 @@ function App() {
                         {item.product.name}
                       </h3>
                       <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-4">
-                        ₹{item.product.price.toLocaleString()}
+                        रु{item.product.price.toLocaleString()}
                       </p>
 
                       {/* Quantity Controls */}
@@ -2170,7 +2170,7 @@ function App() {
                           darkMode ? "text-gray-300" : "text-gray-700"
                         }`}
                       >
-                        Subtotal: ₹{(item.product.price * item.quantity).toLocaleString()}
+                        Subtotal: रु{(item.product.price * item.quantity).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -2206,7 +2206,7 @@ function App() {
                         darkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      ₹{getCartTotal().toLocaleString()}
+                      रु{getCartTotal().toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -2220,7 +2220,7 @@ function App() {
                         darkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      ₹500
+                      रु500
                     </span>
                   </div>
                   <div className={`border-t pt-4 ${
@@ -2235,7 +2235,7 @@ function App() {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        ₹{(getCartTotal() + 500).toLocaleString()}
+                        रु{(getCartTotal() + 500).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -2518,7 +2518,7 @@ function App() {
                           darkMode ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        ₹{(item.product.price * item.quantity).toLocaleString()}
+                        रु{(item.product.price * item.quantity).toLocaleString()}
                       </span>
                     </div>
                   ))}
@@ -2536,7 +2536,7 @@ function App() {
                           darkMode ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        ₹{getCartTotal().toLocaleString()}
+                        रु{getCartTotal().toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -2550,7 +2550,7 @@ function App() {
                           darkMode ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        ₹500
+                        रु500
                       </span>
                     </div>
                     <div className={`flex justify-between pt-2 border-t ${
@@ -2564,7 +2564,7 @@ function App() {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        ₹{(getCartTotal() + 500).toLocaleString()}
+                        रु{(getCartTotal() + 500).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -2821,7 +2821,7 @@ function App() {
                               darkMode ? "text-amber-200" : "text-amber-700"
                             }`}
                           >
-                            You will pay ₹{(getCartTotal() + 500).toLocaleString()} when your order is delivered.
+                            You will pay रु{(getCartTotal() + 500).toLocaleString()} when your order is delivered.
                           </p>
                         </div>
                       </div>
@@ -2833,7 +2833,7 @@ function App() {
                   className="w-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <Wallet className="w-5 h-5" />
-                  Place Order - Pay ₹{(getCartTotal() + 500).toLocaleString()} on Delivery
+                  Place Order - Pay रु{(getCartTotal() + 500).toLocaleString()} on Delivery
                 </button>
               </form>
             </div>
@@ -2866,7 +2866,7 @@ function App() {
                         darkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      ₹{getCartTotal().toLocaleString()}
+                      रु{getCartTotal().toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -2880,7 +2880,7 @@ function App() {
                         darkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      ₹500
+                      रु500
                     </span>
                   </div>
                   <div className={`border-t pt-4 ${
@@ -2895,7 +2895,7 @@ function App() {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        ₹{(getCartTotal() + 500).toLocaleString()}
+                        रु{(getCartTotal() + 500).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -2998,16 +2998,16 @@ function App() {
                       <img src={it.image || ''} alt={it.name} className="w-16 h-16 object-cover rounded" />
                       <div>
                         <div className="font-medium">{it.name}</div>
-                        <div className="text-sm text-gray-500">Qty: {it.quantity} · ₹{it.price.toLocaleString()}</div>
+                        <div className="text-sm text-gray-500">Qty: {it.quantity} · रु{it.price.toLocaleString()}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="mt-6 p-4 rounded bg-amber-50 border border-amber-100">
-                <div className="flex justify-between"><div className="text-sm text-amber-700">Subtotal</div><div className="font-semibold">₹{order.subtotal?.toLocaleString() || 0}</div></div>
-                <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Shipping</div><div className="font-semibold">₹{order.shipping?.toLocaleString() || 0}</div></div>
-                <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Total</div><div className="font-bold text-amber-800">₹{order.total?.toLocaleString() || 0}</div></div>
+                <div className="flex justify-between"><div className="text-sm text-amber-700">Subtotal</div><div className="font-semibold">रु{order.subtotal?.toLocaleString() || 0}</div></div>
+                <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Shipping</div><div className="font-semibold">रु{order.shipping?.toLocaleString() || 0}</div></div>
+                <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Total</div><div className="font-bold text-amber-800">रु{order.total?.toLocaleString() || 0}</div></div>
               </div>
             </div>
           )}
@@ -3113,7 +3113,7 @@ function App() {
                       <div className="text-sm text-amber-700">{new Date(o.createdAt).toLocaleString()}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-amber-800">₹{(o.total || 0).toLocaleString()}</div>
+                      <div className="text-lg font-bold text-amber-800">रु{(o.total || 0).toLocaleString()}</div>
                       <div className="text-sm text-amber-700">{o.orderStatus}</div>
                     </div>
                   </div>
@@ -3237,7 +3237,7 @@ function App() {
                     </div>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        ₹{product.price.toLocaleString()}
+                        रु{product.price.toLocaleString()}
                       </p>
                       <button className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                         darkMode 
