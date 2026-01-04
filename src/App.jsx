@@ -503,14 +503,7 @@ function App() {
               >
                 Home
               </button>
-              <a
-                href="/admin"
-                className={`${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                } hover:text-amber-600 font-medium`}
-              >
-                Admin
-              </a>
+              {/* Admin link removed from header */}
               <button
                 onClick={() => setCurrentPage("products")}
                 className={`${
