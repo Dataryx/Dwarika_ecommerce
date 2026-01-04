@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   ShoppingBag,
@@ -8,6 +8,7 @@ import {
   Star,
   Menu,
   X,
+  ChevronDown,
   Sun,
   Moon,
   Sparkles,
@@ -25,58 +26,7 @@ import {
   Wallet,
   Clock,
 } from "lucide-react";
-
-// Sample product data
-const products = [
-  {
-    id: 1,
-    name: "Gold Necklace Set",
-    price: 45000,
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop",
-  },
-  {
-    id: 2,
-    name: "Diamond Ring",
-    price: 85000,
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop",
-  },
-  {
-    id: 3,
-    name: "Gold Bangles",
-    price: 35000,
-    rating: 4,
-    image:
-      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=400&fit=crop",
-  },
-  {
-    id: 4,
-    name: "Pearl Earrings",
-    price: 25000,
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop",
-  },
-  {
-    id: 5,
-    name: "Gold Chain",
-    price: 55000,
-    rating: 4,
-    image:
-      "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=400&fit=crop",
-  },
-  {
-    id: 6,
-    name: "Bridal Set",
-    price: 125000,
-    rating: 5,
-    image:
-      "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=400&h=400&fit=crop",
-  },
-];
+import { fetchProducts, fetchBanners, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateProfile, verifyEmail, setPassword } from "./utils/api.js";
 
 const testimonials = [
   {
@@ -104,9 +54,358 @@ function App() {
   const [cart, setCart] = useState([]); // Cart items: [{product, quantity}, ...]
   const [selectedProduct, setSelectedProduct] = useState(null); // For product detail view
   const [showProductDetail, setShowProductDetail] = useState(false); // Toggle product detail modal
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [shippingInfo, setShippingInfo] = useState(null); // Store shipping info from checkout
+  const [lastOrder, setLastOrder] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [postLoginRedirect, setPostLoginRedirect] = useState(null);
+  const [verifyToken, setVerifyToken] = useState(null);
+  const [verifyStatus, setVerifyStatus] = useState(null);
+  const [setPasswordToken, setSetPasswordToken] = useState(null);
+  const [setPasswordStatus, setSetPasswordStatus] = useState(null);
+  const [registerMessage, setRegisterMessage] = useState(null);
 
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!token) return;
+      try {
+        const me = await getCurrentUser();
+        if (me) setUser(me);
+        else {
+          localStorage.removeItem('token');
+          setToken(null);
+        }
+      } catch (err) {
+        console.error('Failed to load user:', err);
+        localStorage.removeItem('token');
+        setToken(null);
+      }
+    };
+    loadUser();
+  }, [token]);
 
-  const topRatedProducts = products.filter((p) => p.rating === 5).slice(0, 3);
+  // Detect frontend verify route like /verify?token=... and handle it
+  useEffect(() => {
+    try {
+      const path = window.location.pathname || '';
+      // prefer token in URL hash (safer), fallback to query
+      let t = null;
+      const hash = (window.location.hash || '').toString();
+      if (hash.startsWith('#')) {
+        const hashParams = new URLSearchParams(hash.slice(1));
+        t = hashParams.get('token');
+      }
+      if (!t) {
+        const params = new URLSearchParams(window.location.search || '');
+        t = params.get('token');
+      }
+      if (t) {
+        // If path is /verify or /set-password handle appropriately
+        if (path === '/verify') {
+          setVerifyToken(t);
+          setCurrentPage('verify');
+          const cleanPath = window.location.pathname || '/';
+          window.history.replaceState({}, document.title, cleanPath);
+        } else if (path === '/set-password') {
+          setSetPasswordToken(t);
+          setCurrentPage('setPassword');
+          const cleanPath = window.location.pathname || '/';
+          window.history.replaceState({}, document.title, cleanPath);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Click-away handler to close user menu
+  const userMenuRef = useRef(null);
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!isUserMenuOpen) return;
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [isUserMenuOpen]);
+
+  const handleLogin = async (email, password) => {
+    try {
+      const res = await loginUser({ email, password });
+      if (res?.token) {
+        localStorage.setItem('token', res.token);
+        setToken(res.token);
+        setUser(res.user || null);
+        setCurrentPage('home');
+        if (postLoginRedirect) {
+          setCurrentPage(postLoginRedirect);
+          setPostLoginRedirect(null);
+        }
+      }
+    } catch (err) {
+      alert(err.message || 'Login failed');
+    }
+  };
+
+  const LoginPage = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    const submit = async (e) => {
+      e.preventDefault();
+      await handleLogin(email, password);
+    };
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
+          <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white">
+            <h2 className="text-2xl font-bold">Welcome back</h2>
+            <p className="text-sm mt-1 opacity-90">Login to continue shopping</p>
+          </div>
+          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded border" />
+              </div>
+              <div>
+                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
+                <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-3 rounded border" />
+              </div>
+              <div className="flex items-center justify-between">
+                <button type="submit" className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow">Login</button>
+                <button type="button" onClick={() => setCurrentPage('register')} className="text-sm text-amber-600">Create account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const VerifyPage = ({ token }) => {
+    useEffect(() => {
+      let mounted = true;
+      const run = async () => {
+        try {
+          setVerifyStatus('loading');
+
+          // If token looks like a JWT (has 2 dots), treat it as already-issued JWT and log user in
+          if (typeof token === 'string' && token.split('.').length === 3) {
+            localStorage.setItem('token', token);
+            setToken(token);
+            // refresh current user
+            try {
+              const me = await getCurrentUser();
+              if (mounted) setUser(me);
+            } catch (e) {
+              // ignore
+            }
+            if (!mounted) return;
+            setVerifyStatus('success');
+            return;
+          }
+
+          // Otherwise token is the DB verification token; call backend to verify and receive JWT
+          const res = await verifyEmail(token);
+          if (!mounted) return;
+          if (res?.token) {
+            localStorage.setItem('token', res.token);
+            setToken(res.token);
+            setUser(res.user || null);
+          }
+          setVerifyStatus('success');
+        } catch (err) {
+          if (!mounted) return;
+          setVerifyStatus({ error: true, message: err.message || 'Verification failed' });
+        }
+      };
+      run();
+      return () => { mounted = false; };
+    }, [token]);
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
+          {verifyStatus === 'loading' && <p>Verifying your email…</p>}
+          {verifyStatus === 'success' && (
+            <div>
+              <h2 className="text-2xl font-bold">Email verified</h2>
+              <p className="mt-2">Your email address has been verified. You can now login.</p>
+              <div className="mt-4">
+                <button onClick={() => setCurrentPage('login')} className="px-4 py-2 rounded bg-amber-600 text-white">Go to Login</button>
+              </div>
+            </div>
+          )}
+          {verifyStatus && verifyStatus.error && (
+            <div>
+              <h2 className="text-2xl font-bold">Verification failed</h2>
+              <p className="mt-2 text-red-600">{verifyStatus.message || 'Token invalid or expired.'}</p>
+              <div className="mt-4">
+                <button onClick={() => setCurrentPage('register')} className="px-4 py-2 rounded bg-amber-600 text-white">Create Account</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const SetPasswordPage = ({ token }) => {
+    const [password, setPasswordInput] = useState('');
+    useEffect(() => {
+      setSetPasswordStatus(null);
+    }, [token]);
+
+    const submit = async (e) => {
+      e.preventDefault();
+      try {
+        setSetPasswordStatus('loading');
+        const res = await setPassword(token, password);
+        // Do not auto-login after setting password; prompt user to log in
+        setSetPasswordStatus('success');
+        setCurrentPage('login');
+      } catch (err) {
+        setSetPasswordStatus({ error: true, message: err.message || 'Failed' });
+      }
+    };
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
+          <h2 className="text-2xl font-bold">Set your password</h2>
+          {setPasswordStatus === 'loading' && <p>Saving password…</p>}
+          {setPasswordStatus === 'success' && (
+            <div>
+              <p className="mt-2">Password set — please log in to continue.</p>
+              <div className="mt-4"><button onClick={() => setCurrentPage('login')} className="px-4 py-2 rounded bg-amber-600 text-white">Go to Login</button></div>
+            </div>
+          )}
+          {setPasswordStatus && setPasswordStatus.error && (
+            <div>
+              <p className="mt-2 text-red-600">{setPasswordStatus.message}</p>
+            </div>
+          )}
+          {!setPasswordStatus && (
+            <form onSubmit={submit} className="space-y-4 mt-4">
+              <div>
+                <label className="block mb-1 text-gray-700">New password</label>
+                <input type="password" required value={password} onChange={e=>setPasswordInput(e.target.value)} className="w-full p-3 rounded border" />
+              </div>
+              <div className="flex items-center justify-between">
+                <button type="submit" className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow">Set password</button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    )
+  };
+
+  const RegisterPage = () => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+
+    const submit = async (e) => {
+      e.preventDefault();
+      await handleRegister(name, email, null, phone);
+    };
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
+          <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white">
+            <h2 className="text-2xl font-bold">Create your account</h2>
+            <p className="text-sm mt-1 opacity-90">Join Dwarika to save orders and checkout faster</p>
+          </div>
+          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Full name</label>
+                <input type="text" required value={name} onChange={e=>setName(e.target.value)} className="w-full p-3 rounded border" />
+              </div>
+              <div>
+                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded border" />
+              </div>
+              <div>
+                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Phone</label>
+                <input type="text" value={phone} onChange={e=>setPhone(e.target.value)} className="w-full p-3 rounded border" />
+              </div>
+              <div className="text-sm text-gray-600">A link to set your password will be sent to your email.</div>
+              <div className="flex items-center justify-between">
+                <button type="submit" className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow">Create account</button>
+                <button type="button" onClick={() => setCurrentPage('login')} className="text-sm text-amber-600">Already have an account?</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  const handleRegister = async (name, email, password, phone) => {
+    try {
+      const res = await registerUser({ name, email, phone });
+      // Show a full-screen message after registration instead of a popup
+      setRegisterMessage(res.message || 'Registered. Please check your email for the link to set your password.');
+      setCurrentPage('registerSuccess');
+    } catch (err) {
+      const msg = err.message || 'Registration failed';
+      // If the account already exists, show the same friendly message and prompt to check email
+      if (msg.toLowerCase().includes('user already exists') || msg.toLowerCase().includes('already exists')) {
+        setRegisterMessage('Account created. Please check your email for verification and to set your password.');
+      } else {
+        setRegisterMessage(msg);
+      }
+      setCurrentPage('registerSuccess');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setCurrentPage('home');
+  };
+
+  // Load products from API
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const allProducts = await fetchProducts({ status: 'active' });
+        // Convert API products to match frontend format
+        const formattedProducts = allProducts.map(p => ({
+          id: p._id,
+          _id: p._id,
+          name: p.name,
+          price: p.price,
+          rating: p.rating || 0,
+          image: p.image || 'https://via.placeholder.com/400',
+          description: p.description,
+          stock: p.stock,
+          featured: p.featured
+        }));
+        setProducts(formattedProducts);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        // Fallback to empty array if API fails
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  const topRatedProducts = products.filter((p) => p.featured).slice(0, 3);
 
   const getFilteredProducts = () => {
     return products.filter((product) =>
@@ -115,12 +414,15 @@ function App() {
   };
 
   // Cart Management Functions
+  const getProductId = (product) => product.id || product._id;
+  
   const addToCart = (product, quantity = 1) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.product.id === product.id);
+      const productId = getProductId(product);
+      const existingItem = prevCart.find((item) => getProductId(item.product) === productId);
       if (existingItem) {
         return prevCart.map((item) =>
-          item.product.id === product.id
+          getProductId(item.product) === productId
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
@@ -130,7 +432,7 @@ function App() {
   };
 
   const removeFromCart = (productId) => {
-    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
+    setCart((prevCart) => prevCart.filter((item) => getProductId(item.product) !== productId));
   };
 
   const updateCartQuantity = (productId, quantity) => {
@@ -140,7 +442,7 @@ function App() {
     }
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        getProductId(item.product) === productId ? { ...item, quantity } : item
       )
     );
   };
@@ -201,6 +503,14 @@ function App() {
               >
                 Home
               </button>
+              <a
+                href="/admin"
+                className={`${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } hover:text-amber-600 font-medium`}
+              >
+                Admin
+              </a>
               <button
                 onClick={() => setCurrentPage("products")}
                 className={`${
@@ -301,6 +611,37 @@ function App() {
                 )}
               </button>
 
+              {/* Auth Buttons */}
+              {user ? (
+                <div ref={userMenuRef} className="hidden md:block relative">
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700"
+                  >
+                    <span className={`font-medium ${darkMode ? 'text-white' : 'text-amber-700'}`}>
+                      {user.name ? user.name.split(' ')[0] : 'User'}
+                    </span>
+                    <ChevronDown className={darkMode ? 'text-white' : 'text-amber-700'} />
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-amber-50 rounded-md shadow-lg z-50 overflow-hidden border border-amber-100">
+                      <div className="p-4 border-b border-amber-100">
+                        <div className="font-semibold text-amber-800">{user.name}</div>
+                        <div className="text-sm text-amber-700">{user.email}</div>
+                      </div>
+                      <button onClick={() => { setCurrentPage('profile'); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-amber-100">Profile</button>
+                      <button onClick={() => { setCurrentPage('myOrders'); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-amber-100">My Orders</button>
+                      <button onClick={() => { handleLogout(); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-red-600 hover:bg-amber-100">Logout</button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="hidden md:flex items-center">
+                  <button onClick={() => setCurrentPage('login')} className="px-3 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow-md">Login</button>
+                </div>
+              )}
+
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -379,6 +720,27 @@ function App() {
                 >
                   Contact
                 </button>
+                {/* Mobile auth action */}
+                {user ? (
+                  <>
+                    <div className="pt-4 px-3 border-t">
+                      <div className="font-semibold text-amber-700">{user.name ? user.name.split(' ')[0] : 'User'}</div>
+                    </div>
+                    <button onClick={() => { setCurrentPage('profile'); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-amber-700">Profile</button>
+                    <button onClick={() => { setCurrentPage('myOrders'); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-amber-700">My Orders</button>
+                    <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-red-600">Logout</button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setCurrentPage('login');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left text-amber-600 font-medium"
+                  >
+                    Login
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1571,7 +1933,7 @@ function App() {
             <div className="lg:col-span-2 space-y-4">
               {cart.map((item) => (
                 <div
-                  key={item.product.id}
+                  key={getProductId(item.product)}
                   className={`${
                     darkMode ? "bg-gray-800" : "bg-gradient-to-br from-stone-50 to-amber-50/30"
                   } rounded-xl shadow-lg p-6 border-2 ${
@@ -1608,7 +1970,7 @@ function App() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() =>
-                              updateCartQuantity(item.product.id, item.quantity - 1)
+                              updateCartQuantity(getProductId(item.product), item.quantity - 1)
                             }
                             className={`p-1 rounded-full ${
                               darkMode
@@ -1627,7 +1989,7 @@ function App() {
                           </span>
                           <button
                             onClick={() =>
-                              updateCartQuantity(item.product.id, item.quantity + 1)
+                              updateCartQuantity(getProductId(item.product), item.quantity + 1)
                             }
                             className={`p-1 rounded-full ${
                               darkMode
@@ -1639,7 +2001,7 @@ function App() {
                           </button>
                         </div>
                         <button
-                          onClick={() => removeFromCart(item.product.id)}
+                          onClick={() => removeFromCart(getProductId(item.product))}
                           className={`ml-auto p-2 text-red-500 rounded-lg transition-colors ${
                             darkMode ? "hover:bg-red-900/20" : "hover:bg-red-50"
                           }`}
@@ -1754,6 +2116,7 @@ function App() {
 
     const handleSubmit = (e) => {
       e.preventDefault();
+      setShippingInfo(formData);
       setCurrentPage("payment");
     };
 
@@ -1988,7 +2351,7 @@ function App() {
                 </h2>
                 <div className="space-y-4 mb-6">
                   {cart.map((item) => (
-                    <div key={item.product.id} className="flex justify-between">
+                    <div key={getProductId(item.product)} className="flex justify-between">
                       <span
                         className={darkMode ? "text-gray-300" : "text-gray-600"}
                       >
@@ -2061,11 +2424,52 @@ function App() {
   const PaymentPage = () => {
     const [paymentMethod, setPaymentMethod] = useState("cash");
 
-    const handlePayment = (e) => {
+    const handlePayment = async (e) => {
       e.preventDefault();
-      alert("Order placed successfully! You will pay ₹" + (getCartTotal() + 500).toLocaleString() + " on delivery.");
-      setCart([]);
-      setCurrentPage("home");
+      try {
+        if (!user) {
+          setPostLoginRedirect('payment');
+          alert('Please login to place order');
+          setCurrentPage('login');
+          return;
+        }
+
+        const orderData = {
+          user: user._id,
+          items: cart.map(item => ({
+            product: item.product._id || item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            image: item.product.image
+          })),
+          shippingAddress: shippingInfo ? {
+            name: shippingInfo.fullName,
+            phone: shippingInfo.phone,
+            street: shippingInfo.address || '',
+            city: shippingInfo.city,
+            state: shippingInfo.state,
+            zipCode: shippingInfo.zipCode,
+            country: 'India'
+          } : {},
+          paymentMethod: paymentMethod === 'cash' ? 'cash_on_delivery' : 'card',
+          paymentStatus: 'pending',
+          orderStatus: 'pending',
+          subtotal: getCartTotal(),
+          shipping: 500,
+          total: getCartTotal() + 500
+        };
+
+        const orderRes = await createOrder(orderData);
+        // orderRes should contain saved order with orderNumber
+        setLastOrder(orderRes);
+        setCart([]);
+        setShippingInfo(null);
+        setCurrentPage("orderSuccess");
+      } catch (error) {
+        console.error('Error creating order:', error);
+        alert("Failed to place order. Please try again.");
+      }
     };
 
     if (cart.length === 0) {
@@ -2348,6 +2752,228 @@ function App() {
     );
   };
 
+  const OrderSuccessPage = () => {
+    if (!lastOrder) {
+      return (
+        <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+          <div className="max-w-md mx-auto p-6 rounded-lg shadow-lg bg-white text-center">
+            <h2 className="text-2xl font-bold">Order placed</h2>
+            <p className="mt-4">We have received your order.</p>
+            <button onClick={() => setCurrentPage('home')} className="mt-6 px-4 py-2 rounded-full bg-amber-600 text-white">Continue shopping</button>
+          </div>
+        </div>
+      );
+    }
+
+    const orderNumber = lastOrder.orderNumber || lastOrder._id || '';
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-lg mx-auto rounded-2xl overflow-hidden shadow-2xl">
+          <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white text-center">
+            <h2 className="text-2xl font-bold">Order Confirmed</h2>
+            <p className="mt-2 opacity-90">Thank you for your purchase</p>
+          </div>
+          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <p className={`text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>Your order ID:</p>
+            <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
+              <span className="font-mono font-semibold text-lg text-amber-800">{orderNumber}</span>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => { setCurrentPage('home'); setLastOrder(null); }} className="flex-1 px-4 py-2 rounded-full bg-amber-600 text-white">Continue shopping</button>
+              <button onClick={() => { setLastOrder(null); setCurrentPage('orders'); }} className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600">View orders</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Order detail page
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const OrderDetailPage = () => {
+    const [order, setOrder] = useState(null);
+    const [loadingOrder, setLoadingOrder] = useState(true);
+
+    useEffect(() => {
+      const load = async () => {
+        if (!selectedOrderId) return;
+        try {
+          setLoadingOrder(true);
+          const data = await fetchOrderDetail(selectedOrderId);
+          setOrder(data);
+        } catch (err) {
+          console.error('Failed to load order', err);
+        } finally {
+          setLoadingOrder(false);
+        }
+      };
+      load();
+    }, [selectedOrderId]);
+
+    if (!selectedOrderId) return null;
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-3xl mx-auto p-6 rounded-2xl shadow-2xl bg-white">
+          <button onClick={() => { setCurrentPage('myOrders'); setSelectedOrderId(null); }} className="mb-4 text-amber-600">← Back to orders</button>
+          {loadingOrder ? (
+            <div>Loading...</div>
+          ) : !order ? (
+            <div>Order not found</div>
+          ) : (
+            <div>
+              <h3 className="text-2xl font-semibold text-amber-800">{order.orderNumber || order._id}</h3>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-amber-700">Status</div>
+                  <div className="font-medium">{order.orderStatus}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-amber-700">Payment</div>
+                  <div className="font-medium">{order.paymentStatus}</div>
+                </div>
+              </div>
+              <div className="mt-6">
+                <h4 className="font-semibold">Items</h4>
+                <div className="mt-2 space-y-2">
+                  {order.items.map((it) => (
+                    <div key={it._id || it.product} className="flex items-center gap-3 p-3 rounded border">
+                      <img src={it.image || ''} alt={it.name} className="w-16 h-16 object-cover rounded" />
+                      <div>
+                        <div className="font-medium">{it.name}</div>
+                        <div className="text-sm text-gray-500">Qty: {it.quantity} · ₹{it.price.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6 p-4 rounded bg-amber-50 border border-amber-100">
+                <div className="flex justify-between"><div className="text-sm text-amber-700">Subtotal</div><div className="font-semibold">₹{order.subtotal?.toLocaleString() || 0}</div></div>
+                <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Shipping</div><div className="font-semibold">₹{order.shipping?.toLocaleString() || 0}</div></div>
+                <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Total</div><div className="font-bold text-amber-800">₹{order.total?.toLocaleString() || 0}</div></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const ProfilePage = () => {
+    const [name, setName] = useState(user?.name || '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+      if (!user) {
+        setPostLoginRedirect('profile');
+        setCurrentPage('login');
+      } else {
+        // sync local fields when user loads
+        setName(user.name || '');
+        setPhone(user.phone || '');
+      }
+    }, [user]);
+
+    const save = async () => {
+      try {
+        setSaving(true);
+        const updated = await updateProfile({ name, phone });
+        setUser(updated);
+        alert('Profile updated');
+      } catch (err) {
+        alert(err.message || 'Failed to update profile');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
+          <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white text-center">
+            <h2 className="text-2xl font-bold">Profile</h2>
+          </div>
+          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className="mb-4">
+              <label className="text-sm text-gray-500">Name</label>
+              <input value={name} onChange={(e)=>setName(e.target.value)} className="w-full p-3 rounded border mt-1" />
+            </div>
+            <div className="mb-4">
+              <label className="text-sm text-gray-500">Email</label>
+              <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{user?.email}</div>
+            </div>
+            <div className="mb-4">
+              <label className="text-sm text-gray-500">Phone</label>
+              <input value={phone} onChange={(e)=>setPhone(e.target.value)} className="w-full p-3 rounded border mt-1" />
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2 rounded-full bg-amber-600 text-white">Save</button>
+              <button onClick={() => setCurrentPage('home')} className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const MyOrdersPage = () => {
+    const [orders, setOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(true);
+    const [selectedOrderIdLocal, setSelectedOrderIdLocal] = useState(null);
+
+    useEffect(() => {
+      const load = async () => {
+        try {
+          setLoadingOrders(true);
+          const data = await fetchMyOrders();
+          setOrders(data);
+        } catch (err) {
+          console.error('Failed to load orders', err);
+          setOrders([]);
+        } finally {
+          setLoadingOrders(false);
+        }
+      };
+      load();
+    }, []);
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-4xl mx-auto p-6">
+          <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>My Orders</h2>
+          {loadingOrders ? (
+            <div className="text-gray-500">Loading...</div>
+          ) : orders.length === 0 ? (
+            <div className="text-gray-500">You have no orders yet.</div>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((o) => (
+                <div key={o._id} className="p-4 rounded-lg shadow-md bg-gradient-to-br from-stone-50 to-amber-50 border-2 border-amber-100">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold text-amber-800">{o.orderNumber || o._id}</div>
+                      <div className="text-sm text-amber-700">{new Date(o.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-amber-800">₹{(o.total || 0).toLocaleString()}</div>
+                      <div className="text-sm text-amber-700">{o.orderStatus}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={() => { setCurrentPage('orderDetail'); setSelectedOrderId(o._id); }} className="px-3 py-1 rounded-full bg-amber-600 text-white">View</button>
+                    <button onClick={() => { navigator.clipboard?.writeText(o.orderNumber || o._id); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Copy ID</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const ProductsPage = () => {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const categories = ["All", "Necklaces", "Rings", "Bangles", "Earrings", "Bridal Sets", "Chains"];
@@ -2512,9 +3138,29 @@ function App() {
       {currentPage === "cart" && <CartPage />}
       {currentPage === "checkout" && <CheckoutPage />}
       {currentPage === "payment" && <PaymentPage />}
+      {currentPage === "orderSuccess" && <OrderSuccessPage />}
+      {currentPage === "profile" && <ProfilePage />}
+      {currentPage === "myOrders" && <MyOrdersPage />}
+      {currentPage === "orderDetail" && <OrderDetailPage />}
       {currentPage === "about" && <AboutPage />}
       {currentPage === "contact" && <ContactPage />}
       {currentPage === "search" && <SearchResultsPage />}
+      {currentPage === "login" && <LoginPage />}
+      {currentPage === "register" && <RegisterPage />}
+      {currentPage === "registerSuccess" && (
+        <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+          <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
+            <h2 className="text-2xl font-bold">Account created</h2>
+            <p className="mt-4">{registerMessage || 'Please check your email for the link to set your password.'}</p>
+            <div className="mt-6 flex space-x-3">
+              <button onClick={() => setCurrentPage('login')} className="px-4 py-2 rounded bg-amber-600 text-white">Go to Login</button>
+              <button onClick={() => setCurrentPage('home')} className="px-4 py-2 rounded border">Go to Home</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {currentPage === "verify" && <VerifyPage token={verifyToken} />}
+      {currentPage === "setPassword" && <SetPasswordPage token={setPasswordToken} />}
       <Footer />
       {showProductDetail && <ProductDetailModal />}
     </div>
