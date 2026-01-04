@@ -26,7 +26,8 @@ import {
   Wallet,
   Clock,
 } from "lucide-react";
-import { fetchProducts, fetchBanners, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
+import { fetchProducts, fetchBanners, fetchShippingCharge, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
+/* AnimatedTitle removed per request */
 
 const testimonials = [
   {
@@ -76,7 +77,13 @@ function App() {
   });
   const [searchQuery, setSearchQuery] = useState(""); // Committed search term
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cart, setCart] = useState([]); // Cart items: [{product, quantity}, ...]
+  const [cart, setCart] = useState(() => {
+    try {
+      const raw = localStorage.getItem('cart');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return [];
+  }); // Cart items: [{product, quantity}, ...]
   const [selectedProduct, setSelectedProduct] = useState(null); // For product detail view
   const [showProductDetail, setShowProductDetail] = useState(false); // Toggle product detail modal
   const [products, setProducts] = useState([]);
@@ -85,6 +92,8 @@ function App() {
   const [lastOrder, setLastOrder] = useState(null);
   const [shippingCharge, setShippingCharge] = useState(null); // loaded from server
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  // Load shipping charge from server (admin configurable)
+  
   const [user, setUser] = useState(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -615,6 +624,15 @@ function App() {
     return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   };
 
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    } catch (e) {
+      console.error('Failed to persist cart', e);
+    }
+  }, [cart]);
+
   const getCartItemCount = () => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   };
@@ -896,11 +914,7 @@ function App() {
 
   const Hero = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [heroImages, setHeroImages] = useState([
-      "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1200&h=800&fit=crop",
-      "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=1200&h=800&fit=crop",
-      "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1200&h=800&fit=crop",
-    ]);
+    const [heroImages, setHeroImages] = useState([]);
 
     useEffect(() => {
       let mounted = true;
@@ -923,13 +937,9 @@ function App() {
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/settings/shipping-charge');
+        const data = await fetchShippingCharge();
         if (!mounted) return;
-        if (res.ok) {
-          const data = await res.json();
-          // server returns { shippingCharge: { amount: Number } }
-          setShippingCharge(data.shippingCharge || data);
-        }
+        setShippingCharge(data.shippingCharge || data);
       } catch (err) {
         console.error('Failed to load shipping charge', err);
       }
@@ -962,7 +972,7 @@ function App() {
         if (res.ok) {
           const d = await res.json();
           setShippingCharge(d.shippingCharge || d);
-          console.log('Shipping refreshed on focus', d.shippingCharge || d);
+          console.debug && console.debug('Shipping refreshed on focus', d.shippingCharge || d);
         }
       } catch (err) {
         // ignore
@@ -975,7 +985,7 @@ function App() {
 
   // Debug: log shippingCharge changes
   useEffect(() => {
-    console.log('shippingCharge state changed:', shippingCharge);
+    console.debug && console.debug('shippingCharge state changed:', shippingCharge);
   }, [shippingCharge]);
 
   // Refresh shipping when navigating to cart/checkout/payment to ensure latest value
@@ -983,11 +993,8 @@ function App() {
     if (['cart', 'checkout', 'payment'].includes(currentPage)) {
       (async () => {
         try {
-          const res = await fetch('/api/settings/shipping-charge');
-          if (res.ok) {
-            const d = await res.json();
-            setShippingCharge(d.shippingCharge || d);
-          }
+          const d = await fetchShippingCharge();
+          setShippingCharge(d.shippingCharge || d);
         } catch (err) {
           // ignore
         }
@@ -1022,12 +1029,19 @@ function App() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="text-center lg:text-left space-y-8">
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 ${
-                darkMode ? "bg-amber-900/30 text-amber-400" : "bg-amber-100 text-amber-700"
+              <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-full mb-6 shadow-lg transform-gpu floaty ${
+                darkMode ? "bg-amber-900/10 text-amber-400" : "bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 text-amber-700"
               }`}>
-                <Sparkles className="w-5 h-5" />
-                <span className="text-sm font-semibold">Premium Collection</span>
+                <Sparkles className="w-6 h-6 text-amber-600 animate-pulse-slow" />
+                <span className="text-lg md:text-2xl font-extrabold dwarika-badge">Dwarika Collection</span>
               </div>
+              <style>{`
+                .dwarika-badge { background: linear-gradient(90deg,#b78300 0%,#ffd166 50%,#f0c24a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+                @keyframes floaty { 0% { transform: translateY(0); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0); } }
+                .floaty { animation: floaty 4.2s ease-in-out infinite; }
+                @keyframes pulse-slow { 0% { opacity: 1; transform: scale(1); } 50% { opacity: .85; transform: scale(1.02); } 100% { opacity: 1; transform: scale(1); } }
+                .animate-pulse-slow { animation: pulse-slow 2.6s ease-in-out infinite; }
+              `}</style>
               
               <h1
                 className={`text-5xl md:text-6xl lg:text-7xl font-bold leading-tight ${
@@ -1352,6 +1366,8 @@ function App() {
       </div>
     );
   };
+
+  
 
   const Statistics = () => {
     const stats = [
@@ -3437,6 +3453,7 @@ function App() {
       {currentPage === "home" && (
         <>
           <Hero />
+          {/* AnimatedTitle removed; badge now shows Dwarika Collection */}
           <Statistics />
           <FeaturedCollection />
           <Testimonials />

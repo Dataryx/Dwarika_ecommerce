@@ -1,5 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Simple in-memory cache for a few short-lived endpoints to avoid repeated fetches during rapid re-renders
+const _cache = {
+  banners: { ts: 0, data: null },
+  shippingCharge: { ts: 0, data: null }
+};
+
 export const fetchProducts = async (params = {}) => {
   const queryString = new URLSearchParams(params).toString();
   const response = await fetch(`${API_URL}/products?${queryString}`);
@@ -15,9 +21,27 @@ export const fetchProduct = async (id) => {
 };
 
 export const fetchBanners = async () => {
+  // cache for 5 seconds
+  const ttl = 5000;
+  const now = Date.now();
+  if (_cache.banners.data && (now - _cache.banners.ts) < ttl) return _cache.banners.data;
   const response = await fetch(`${API_URL}/banners?active=true`);
   if (!response.ok) throw new Error('Failed to fetch banners');
-  return await response.json();
+  const data = await response.json();
+  _cache.banners = { ts: now, data };
+  return data;
+};
+
+export const fetchShippingCharge = async () => {
+  // cache for 3 seconds to avoid rapid repeated requests during UI updates
+  const ttl = 3000;
+  const now = Date.now();
+  if (_cache.shippingCharge.data && (now - _cache.shippingCharge.ts) < ttl) return _cache.shippingCharge.data;
+  const response = await fetch(`${API_URL}/settings/shipping-charge`);
+  if (!response.ok) throw new Error('Failed to fetch shipping charge');
+  const data = await response.json();
+  _cache.shippingCharge = { ts: now, data };
+  return data;
 };
 
 export const registerUser = async (userData) => {

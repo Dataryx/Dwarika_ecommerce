@@ -2109,15 +2109,15 @@ function AdminDashboard() {
 
   const saveShippingCharge = async () => {
     try {
-      console.log('Saving shipping charge to server', shippingCharge);
+      console.debug && console.debug('Saving shipping charge to server', shippingCharge);
       const res = await fetch('/api/settings/shipping-charge', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ shippingCharge })
       });
-      console.log('Save response status', res.status);
+      console.debug && console.debug('Save response status', res.status);
       const respBody = await res.json().catch(() => ({}));
-      console.log('Save response body', respBody);
+      console.debug && console.debug('Save response body', respBody);
       if (res.ok) {
         alert('Shipping charge saved');
         try { localStorage.setItem('shippingCharge', JSON.stringify(shippingCharge)); } catch (e) {}
