@@ -744,18 +744,34 @@ function App() {
 
   const Hero = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const heroImages = [
+    const [heroImages, setHeroImages] = useState([
       "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1200&h=800&fit=crop",
       "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=1200&h=800&fit=crop",
       "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1200&h=800&fit=crop",
-    ];
+    ]);
+
+    useEffect(() => {
+      let mounted = true;
+      const loadBannersForHero = async () => {
+        try {
+          const banners = await fetchBanners();
+          if (!mounted || !Array.isArray(banners)) return;
+          const heroBanners = banners.filter(b => (b.position || 'hero') === 'hero' && b.active).map(b => b.image).filter(Boolean);
+          if (heroBanners.length > 0) setHeroImages(heroBanners);
+        } catch (e) {
+          console.debug('Failed to load hero banners:', e.message || e);
+        }
+      };
+      loadBannersForHero();
+      return () => { mounted = false };
+    }, []);
 
     useEffect(() => {
       const timer = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
       }, 5000);
       return () => clearInterval(timer);
-    }, []);
+    }, [heroImages.length]);
 
     return (
       <div

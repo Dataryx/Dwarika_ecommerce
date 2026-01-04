@@ -111,6 +111,9 @@
 //     position: 'hero',
 //     active: true
 //   });
+//   // Allow uploading banner image from device
+//   const [bannerImageFile, setBannerImageFile] = useState(null);
+//   const [bannerImagePreview, setBannerImagePreview] = useState(null);
 
 //   useEffect(() => {
 //     if (token) {
@@ -382,6 +385,17 @@
 //     }
 //   };
 
+//   // Banner image change (from device)
+//   const handleBannerImageChange = (e) => {
+//     const file = e.target.files[0];
+//     if (file) {
+//       setBannerImageFile(file);
+//       const reader = new FileReader();
+//       reader.onloadend = () => setBannerImagePreview(reader.result);
+//       reader.readAsDataURL(file);
+//     }
+//   };
+
 //   const uploadImage = async (file) => {
 //     const formData = new FormData();
 //     formData.append('image', file);
@@ -506,18 +520,28 @@
 //         : `${API_URL}/banners`;
 //       const method = editingBanner ? 'PUT' : 'POST';
 
+//       // Upload banner image if a file was selected
+//       let imageUrl = bannerForm.image;
+//       if (bannerImageFile) {
+//         imageUrl = await uploadImage(bannerImageFile);
+//       }
+
+//       const payload = { ...bannerForm, image: imageUrl };
+
 //       const response = await fetch(url, {
 //         method,
 //         headers: {
 //           'Content-Type': 'application/json',
 //           Authorization: `Bearer ${token}`
 //         },
-//         body: JSON.stringify(bannerForm)
+//         body: JSON.stringify(payload)
 //       });
 
 //       if (response.ok) {
 //         setShowBannerForm(false);
 //         setEditingBanner(null);
+//         setBannerImageFile(null);
+//         setBannerImagePreview(null);
 //         setBannerForm({
 //           title: '',
 //           subtitle: '',
@@ -1727,32 +1751,22 @@
 //                       </div>
 //                       <div>
 //                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-//                           Image URL <span className="text-red-500">*</span>
+//                           Upload Image <span className="text-red-500">*</span>
 //                         </label>
 //                         <input
-//                           type="url"
-//                           value={bannerForm.image}
-//                           onChange={(e) => setBannerForm({ ...bannerForm, image: e.target.value })}
-//                           required
-//                           placeholder="https://example.com/banner.jpg"
-//                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
+//                           type="file"
+//                           accept="image/*"
+//                           onChange={handleBannerImageChange}
+//                           required={!editingBanner && !bannerForm.image}
+//                           className="w-full"
 //                         />
-//                         {bannerForm.image && (
+//                         {(bannerImagePreview || bannerForm.image) && (
 //                           <div className="mt-3 rounded-xl overflow-hidden border-2 border-pink-200">
-//                             <img src={bannerForm.image} alt="Banner preview" className="w-full h-40 object-cover" onError={(e) => e.target.style.display = 'none'} />
+//                             <img src={bannerImagePreview || bannerForm.image} alt="Banner preview" className="w-full h-40 object-cover" onError={(e) => e.target.style.display = 'none'} />
 //                           </div>
 //                         )}
 //                       </div>
-//                       <div>
-//                         <label className="block text-sm font-semibold text-gray-700 mb-2">Link URL</label>
-//                         <input
-//                           type="url"
-//                           value={bannerForm.link}
-//                           onChange={(e) => setBannerForm({ ...bannerForm, link: e.target.value })}
-//                           placeholder="https://example.com (optional)"
-//                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-//                         />
-//                       </div>
+//                       {/* Link URL removed; banners are uploaded from device only */}
 //                       <div>
 //                         <label className="block text-sm font-semibold text-gray-700 mb-2">Position</label>
 //                         <select
@@ -1962,6 +1976,10 @@ function AdminDashboard() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // Banner image upload state
+  const [bannerImageFile, setBannerImageFile] = useState(null);
+  const [bannerImagePreview, setBannerImagePreview] = useState(null);
 
   // Users
   const [users, setUsers] = useState([]);
@@ -2259,6 +2277,16 @@ function AdminDashboard() {
     }
   };
 
+  const handleBannerImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBannerImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setBannerImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -2272,7 +2300,8 @@ function AdminDashboard() {
     });
 
     if (!response.ok) {
-      throw new Error('Image upload failed');
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Image upload failed');
     }
 
     const data = await response.json();
@@ -2375,13 +2404,21 @@ function AdminDashboard() {
       const url = editingBanner ? `${API_URL}/banners/${editingBanner._id}` : `${API_URL}/banners`;
       const method = editingBanner ? 'PUT' : 'POST';
 
+      // Upload banner image if a file was selected
+      let imageUrl = bannerForm.image;
+      if (bannerImageFile) {
+        imageUrl = await uploadImage(bannerImageFile);
+      }
+
+      const payload = { ...bannerForm, image: imageUrl };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(bannerForm)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -2395,6 +2432,8 @@ function AdminDashboard() {
           position: 'hero',
           active: true
         });
+        setBannerImageFile(null);
+        setBannerImagePreview(null);
         loadBanners();
       }
     } catch (error) {
@@ -3650,40 +3689,37 @@ function AdminDashboard() {
                           />
                         </div>
 
+                        
+                        {/* Banner Image upload (from device) */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Image URL <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="url"
-                            value={bannerForm.image}
-                            onChange={(e) => setBannerForm({ ...bannerForm, image: e.target.value })}
-                            required
-                            placeholder="https://example.com/banner.jpg"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                          />
-                          {bannerForm.image && (
-                            <div className="mt-3 rounded-xl overflow-hidden border-2 border-pink-200">
-                              <img
-                                src={bannerForm.image}
-                                alt="Banner preview"
-                                className="w-full h-40 object-cover"
-                                onError={(e) => (e.currentTarget.style.display = 'none')}
-                              />
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Banner Image <span className="text-red-500">*</span></label>
+                          {!(bannerImagePreview || bannerForm.image) ? (
+                            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-pink-300 rounded-2xl cursor-pointer bg-gradient-to-br from-pink-50 to-white hover:from-pink-100 transition-all group">
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <div className="bg-pink-100 p-4 rounded-full mb-3 group-hover:bg-pink-200 transition">
+                                  <Image className="w-8 h-8 text-pink-600" />
+                                </div>
+                                <p className="mb-1 text-sm font-semibold text-gray-700">
+                                  <span className="text-pink-600">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                              </div>
+                              <input type="file" className="hidden" accept="image/*" onChange={handleBannerImageChange} />
+                            </label>
+                          ) : (
+                            <div className="relative group">
+                              <div className="relative overflow-hidden rounded-2xl border-2 border-pink-200">
+                                <img src={bannerImagePreview || bannerForm.image} alt="Banner preview" className="w-full h-40 object-cover" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+                              </div>
+                              <button type="button" onClick={() => { setBannerImageFile(null); setBannerImagePreview(null); setBannerForm({ ...bannerForm, image: '' }); }} className="absolute top-3 right-3 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 shadow-lg transition-transform hover:scale-110">
+                                <X size={18} />
+                              </button>
                             </div>
                           )}
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Link URL</label>
-                          <input
-                            type="url"
-                            value={bannerForm.link}
-                            onChange={(e) => setBannerForm({ ...bannerForm, link: e.target.value })}
-                            placeholder="https://example.com (optional)"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                          />
-                        </div>
+                        {/* Link URL removed; banners are uploaded from device only */}
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">Position</label>

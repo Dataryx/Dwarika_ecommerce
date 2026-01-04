@@ -4,8 +4,20 @@ import { authenticate, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Helper to wrap multer single upload and capture errors
+const singleUploadHandler = (field) => (req, res, next) => {
+  upload.single(field)(req, res, (err) => {
+    if (err) {
+      console.error('Multer upload error:', err && err.message ? err.message : err);
+      // Multer errors are usually due to file type/size
+      return res.status(400).json({ message: err.message || 'File upload error' });
+    }
+    next();
+  });
+};
+
 // Upload single image
-router.post('/image', authenticate, isAdmin, upload.single('image'), (req, res) => {
+router.post('/image', authenticate, isAdmin, singleUploadHandler('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -19,6 +31,7 @@ router.post('/image', authenticate, isAdmin, upload.single('image'), (req, res) 
       filename: req.file.filename
     });
   } catch (error) {
+    console.error('Error in upload route:', error && error.message ? error.message : error);
     res.status(500).json({ message: error.message });
   }
 });

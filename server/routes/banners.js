@@ -17,14 +17,11 @@ router.get('/', async (req, res) => {
       // Default to active banners for public access
       query.active = true;
       const now = new Date();
-      query.$or = [
-        { startDate: { $exists: false } },
-        { startDate: { $lte: now } }
+      // Ensure banners are within optional start/end date window
+      query.$and = [
+        { $or: [ { startDate: { $exists: false } }, { startDate: { $lte: now } } ] },
+        { $or: [ { endDate: { $exists: false } }, { endDate: { $gte: now } } ] }
       ];
-      query.$or.push([
-        { endDate: { $exists: false } },
-        { endDate: { $gte: now } }
-      ]);
     }
 
     const banners = await Banner.find(query)
