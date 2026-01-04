@@ -98,6 +98,9 @@
 //   // Orders
 //   const [orders, setOrders] = useState([]);
 //   const [selectedOrder, setSelectedOrder] = useState(null);
+//   // Reviews
+//   const [reviews, setReviews] = useState([]);
+//   const [loadingReviews, setLoadingReviews] = useState(false);
 
 //   // Banners
 //   const [banners, setBanners] = useState([]);
@@ -708,7 +711,8 @@
 //             { id: 'products', icon: Package, label: 'Products', color: 'from-purple-500 to-purple-600' },
 //             { id: 'users', icon: Users, label: 'Users', color: 'from-green-500 to-green-600' },
 //             { id: 'orders', icon: ShoppingBag, label: 'Orders', color: 'from-amber-500 to-amber-600' },
-//             { id: 'banners', icon: Image, label: 'Banners', color: 'from-pink-500 to-pink-600' }
+//             { id: 'banners', icon: Image, label: 'Banners', color: 'from-pink-500 to-pink-600' },
+//             { id: 'reviews', icon: Users, label: 'Reviews', color: 'from-teal-500 to-teal-600' }
 //           ].map((item) => (
 //             <button
 //               key={item.id}
@@ -2009,6 +2013,8 @@ function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  
+
   // Banners
   const [banners, setBanners] = useState([]);
   const [showBannerForm, setShowBannerForm] = useState(false);
@@ -2354,6 +2360,8 @@ function AdminDashboard() {
       console.error('Error loading orders:', error);
     }
   };
+
+  
 
   const loadBanners = async () => {
     try {
@@ -3985,6 +3993,8 @@ function AdminDashboard() {
               )}
             </div>
           )}
+
+          
         </div>
       </div>
     </div>

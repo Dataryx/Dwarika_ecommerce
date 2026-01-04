@@ -47,7 +47,7 @@ const testimonials = [
 ];
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const darkMode = false;
   const [currentPage, setCurrentPage] = useState(() => {
     try {
       const path = window.location.pathname || '/';
@@ -117,6 +117,8 @@ function App() {
     };
     return map[page] || '/';
   };
+
+    
 
   const pathToPage = (path) => {
     if (!path || path === '/' ) return 'home';
@@ -737,19 +739,7 @@ function App() {
                 )}
               </button>
 
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 rounded-full ${
-                  darkMode ? "bg-gray-800" : "bg-stone-200"
-                } hover:bg-amber-100 dark:hover:bg-gray-700`}
-              >
-                {darkMode ? (
-                  <Sun className="w-5 h-5 text-yellow-400" />
-                ) : (
-                  <Moon className="w-5 h-5 text-amber-600" />
-                )}
-              </button>
+              {/* Dark mode removed — always light theme */}
 
               {/* Auth Buttons */}
               {user ? (
@@ -1484,6 +1474,7 @@ function App() {
               </span>
             </div>
           </div>
+      
       </div>
     </div>
   );
@@ -1800,7 +1791,6 @@ function App() {
     const [quantity, setQuantity] = useState(1);
 
     if (!selectedProduct || !showProductDetail) return null;
-
     const handleAddToCart = () => {
       addToCart(selectedProduct, quantity);
       setShowProductDetail(false);
@@ -1867,6 +1857,8 @@ function App() {
                   रु{selectedProduct.price.toLocaleString()}
                 </p>
               </div>
+
+              
 
               {/* Quantity Selector */}
               <div>
