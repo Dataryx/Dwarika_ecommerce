@@ -187,8 +187,8 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: 'Account is inactive' });
     }
 
-    // Require email verification for all registered users
-    if (!user.emailVerified) {
+    // Require email verification for non-admin users
+    if (!user.emailVerified && user.role !== 'admin') {
       return res.status(403).json({ message: 'Email not verified. Please check your email.' });
     }
 

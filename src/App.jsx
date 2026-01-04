@@ -67,6 +67,52 @@ function App() {
   const [setPasswordToken, setSetPasswordToken] = useState(null);
   const [setPasswordStatus, setSetPasswordStatus] = useState(null);
   const [registerMessage, setRegisterMessage] = useState(null);
+  // Sync currentPage with URL so refresh keeps the same page
+  const pageToPath = (page) => {
+    const map = {
+      home: '/',
+      products: '/products',
+      cart: '/cart',
+      checkout: '/checkout',
+      payment: '/payment',
+      orderSuccess: '/order-success',
+      profile: '/profile',
+      myOrders: '/my-orders',
+      orderDetail: '/order',
+      about: '/about',
+      contact: '/contact',
+      search: '/search',
+      login: '/login',
+      register: '/register',
+      registerSuccess: '/register-success',
+      verify: '/verify',
+      setPassword: '/set-password',
+      admin: '/admin'
+    };
+    return map[page] || '/';
+  };
+
+  const pathToPage = (path) => {
+    if (!path || path === '/' ) return 'home';
+    if (path.startsWith('/products')) return 'products';
+    if (path.startsWith('/cart')) return 'cart';
+    if (path.startsWith('/checkout')) return 'checkout';
+    if (path.startsWith('/payment')) return 'payment';
+    if (path.startsWith('/order-success')) return 'orderSuccess';
+    if (path.startsWith('/profile')) return 'profile';
+    if (path.startsWith('/my-orders')) return 'myOrders';
+    if (path.startsWith('/order')) return 'orderDetail';
+    if (path.startsWith('/about')) return 'about';
+    if (path.startsWith('/contact')) return 'contact';
+    if (path.startsWith('/search')) return 'search';
+    if (path.startsWith('/login')) return 'login';
+    if (path.startsWith('/register-success')) return 'registerSuccess';
+    if (path.startsWith('/register')) return 'register';
+    if (path.startsWith('/verify')) return 'verify';
+    if (path.startsWith('/set-password')) return 'setPassword';
+    if (path.startsWith('/admin')) return 'admin';
+    return 'home';
+  };
 
   useEffect(() => {
     const loadUser = async () => {
@@ -120,6 +166,27 @@ function App() {
       // ignore
     }
   }, []);
+
+  // Initialize currentPage from the URL path on first load
+  useEffect(() => {
+    try {
+      const path = window.location.pathname || '/';
+      const page = pathToPage(path);
+      setCurrentPage(page);
+    } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Push state when currentPage changes so refresh keeps the same page
+  useEffect(() => {
+    try {
+      const path = pageToPath(currentPage);
+      const cur = window.location.pathname || '/';
+      if (cur !== path) {
+        window.history.pushState({}, document.title, path);
+      }
+    } catch (e) {}
+  }, [currentPage]);
 
   // Click-away handler to close user menu
   const userMenuRef = useRef(null);
@@ -1009,9 +1076,9 @@ function App() {
   };
 
   const FeaturedCollection = () => {
-    // Show only top-rated products (5 stars) - limit to 3 items
+    // Show products marked as featured (admin toggle) - limit to 3 items
     const featuredProducts = products
-      .filter((p) => p.rating === 5)
+      .filter((p) => p.featured)
       .slice(0, 3);
 
     return (
