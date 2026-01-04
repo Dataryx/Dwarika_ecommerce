@@ -101,17 +101,27 @@ router.post('/', authenticate, async (req, res) => {
 // Update order (admin only)
 router.put('/:id', authenticate, isAdmin, async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    )
-      .populate('user', 'name email phone')
-      .populate('items.product', 'name image');
-
+    const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
+
+    // Apply requested updates
+    Object.keys(req.body || {}).forEach((k) => {
+      order[k] = req.body[k];
+    });
+
+    // Business rule: when order is marked delivered and payment method is cash_on_delivery,
+    // mark paymentStatus as 'paid'
+    const newStatus = (req.body.orderStatus || order.orderStatus || '').toString();
+    if (newStatus === 'delivered' && order.paymentMethod === 'cash_on_delivery') {
+      order.paymentStatus = 'paid';
+    }
+
+    await order.save();
+    await order.populate('user', 'name email phone');
+    await order.populate('items.product', 'name image');
+
     res.json(order);
   } catch (error) {
     res.status(400).json({ message: error.message });
