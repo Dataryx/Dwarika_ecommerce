@@ -26,7 +26,7 @@ import {
   Wallet,
   Clock,
 } from "lucide-react";
-import { fetchProducts, fetchBanners, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateProfile, verifyEmail, setPassword } from "./utils/api.js";
+import { fetchProducts, fetchBanners, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
 
 const testimonials = [
   {
@@ -112,6 +112,7 @@ function App() {
       registerSuccess: '/register-success',
       verify: '/verify',
       setPassword: '/set-password',
+      forgotPassword: '/forgot-password',
       admin: '/admin'
     };
     return map[page] || '/';
@@ -135,6 +136,7 @@ function App() {
     if (path.startsWith('/register')) return 'register';
     if (path.startsWith('/verify')) return 'verify';
     if (path.startsWith('/set-password')) return 'setPassword';
+    if (path.startsWith('/forgot-password')) return 'forgotPassword';
     if (path.startsWith('/admin')) return 'admin';
     return 'home';
   };
@@ -272,7 +274,10 @@ function App() {
               </div>
               <div className="flex items-center justify-between">
                 <button type="submit" className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow">Login</button>
-                <button type="button" onClick={() => setCurrentPage('register')} className="text-sm text-amber-600">Create account</button>
+                <div className="flex items-center gap-4">
+                  <button type="button" onClick={() => setCurrentPage('register')} className="text-sm text-amber-600">Create account</button>
+                  <button type="button" onClick={() => setCurrentPage('forgotPassword')} className="text-sm text-gray-500">Forgot password?</button>
+                </div>
               </div>
             </form>
           </div>
@@ -344,6 +349,56 @@ function App() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+    );
+  };
+
+  const ForgotPasswordPage = () => {
+    const [email, setEmail] = useState('');
+    const [status, setStatus] = useState(null);
+
+    const submit = async (e) => {
+      e.preventDefault();
+      try {
+        setStatus('loading');
+        const res = await forgotPassword(email);
+        setStatus({ success: true, message: res.message || 'Reset link sent' });
+      } catch (err) {
+        setStatus({ error: true, message: err.message || 'Failed to send reset link' });
+      }
+    };
+
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+        <div className="max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
+          <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white">
+            <h2 className="text-2xl font-bold">Reset password</h2>
+            <p className="text-sm mt-1 opacity-90">Enter your registered email to receive a reset link</p>
+          </div>
+          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            {status?.success ? (
+              <div>
+                <h3 className="text-lg font-bold text-green-600">Check your email</h3>
+                <p className="mt-2 text-sm">We have sent a link to reset your password if the email is registered.</p>
+                <div className="mt-4">
+                  <button onClick={() => setCurrentPage('login')} className="px-4 py-2 rounded bg-amber-600 text-white">Back to Login</button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={submit} className="space-y-4">
+                <div>
+                  <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                  <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded border" />
+                </div>
+                {status?.error && <div className="text-sm text-red-600">{status.message}</div>}
+                <div className="flex items-center justify-between">
+                  <button type="submit" className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow">Send reset link</button>
+                  <button type="button" onClick={() => setCurrentPage('login')} className="text-sm text-amber-600">Back to login</button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -3262,6 +3317,7 @@ function App() {
       )}
       {currentPage === "verify" && <VerifyPage token={verifyToken} />}
       {currentPage === "setPassword" && <SetPasswordPage token={setPasswordToken} />}
+      {currentPage === "forgotPassword" && <ForgotPasswordPage />}
       <Footer />
       {showProductDetail && <ProductDetailModal />}
     </div>

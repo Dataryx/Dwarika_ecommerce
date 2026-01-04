@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { verificationEmail } from '../utils/emailTemplates.js';
+import { verificationEmail, forgotPasswordEmail } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -279,6 +279,63 @@ router.get('/verify', async (req, res) => {
     res.json({ message: 'Email verified successfully', token: jwtToken, user: userResponse });
   } catch (err) {
     console.error('Error during email verification:', err && err.message ? err.message : err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Forgot password - request a reset link (email must be registered)
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Email not registered' });
+    }
+
+    // Generate a set-password token (reuse verificationToken fields)
+    user.verificationToken = crypto.randomBytes(32).toString('hex');
+    user.verificationTokenExpires = Date.now() + 1000 * 60 * 60 * 24; // 24 hours
+    await user.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const setPasswordUrl = `${frontendUrl}/set-password#token=${user.verificationToken}`;
+
+    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+      try {
+        const nodemailer = await import('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+
+        const { subject, text, html } = forgotPasswordEmail(user.name || 'Customer', setPasswordUrl);
+
+        const info = await transporter.sendMail({
+          from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+          to: user.email,
+          subject,
+          text,
+          html
+        });
+        console.log('Forgot-password email sent:', info.messageId);
+        console.log('Set-password link (sent):', setPasswordUrl);
+      } catch (mailErr) {
+        console.error('Failed to send forgot-password email (nodemailer error):', mailErr.message);
+        console.log('Set-password link (on error):', setPasswordUrl);
+      }
+    } else {
+      console.log('Set-password link (no SMTP configured):', setPasswordUrl);
+    }
+
+    res.json({ message: 'Reset link sent to the registered email address' });
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
