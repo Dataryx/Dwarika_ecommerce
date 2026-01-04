@@ -13,6 +13,8 @@ import orderRoutes from './routes/orders.js';
 import bannerRoutes from './routes/banners.js';
 import authRoutes from './routes/auth.js';
 import uploadRoutes from './routes/upload.js';
+import settingsRoutes from './routes/settings.js';
+import paymentsRoutes from './routes/payments.js';
 
 dotenv.config();
 
@@ -82,6 +84,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

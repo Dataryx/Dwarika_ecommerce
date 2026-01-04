@@ -1931,6 +1931,7 @@ import {
   Activity,
   BarChart3,
   PieChart
+  , Settings
 } from 'lucide-react';
 
 const API_URL = 'http://localhost:5000/api';
@@ -2076,9 +2077,93 @@ function AdminDashboard() {
   useEffect(() => {
     if (user && user.role === 'admin') {
       loadDashboardData();
+      // load settings and shipping charge when admin opens dashboard
+      loadSettings();
+      loadShippingCharge();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeTab]);
+
+  // Settings (payment methods)
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [shippingCharge, setShippingCharge] = useState({ amount: 500 });
+
+  const loadShippingCharge = async () => {
+    try {
+      console.log('Loading shipping charge from server...');
+      const res = await fetch('/api/settings/shipping-charge');
+      console.log('Response status', res.status);
+      if (res.ok) {
+        const d = await res.json();
+        console.log('Loaded shipping charge', d);
+        setShippingCharge(d.shippingCharge || { amount: 500 });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.warn('Failed to load shipping charge', err);
+      }
+    } catch (e) {
+      console.error('Failed to load shipping charge', e);
+    }
+  };
+
+  const saveShippingCharge = async () => {
+    try {
+      console.log('Saving shipping charge to server', shippingCharge);
+      const res = await fetch('/api/settings/shipping-charge', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ shippingCharge })
+      });
+      console.log('Save response status', res.status);
+      const respBody = await res.json().catch(() => ({}));
+      console.log('Save response body', respBody);
+      if (res.ok) {
+        alert('Shipping charge saved');
+        try { localStorage.setItem('shippingCharge', JSON.stringify(shippingCharge)); } catch (e) {}
+      } else {
+        alert(respBody.message || 'Failed to save shipping charge');
+      }
+    } catch (e) {
+      console.error('Save shipping error', e);
+      alert('Failed to save shipping charge');
+    }
+  };
+
+  const loadSettings = async () => {
+    setLoadingSettings(true);
+    try {
+      const res = await fetch(`/api/settings/payment-methods`);
+      if (res.ok) {
+        const d = await res.json();
+        // Filter out UPI/mobile-pay option from admin settings
+        setPaymentMethods((d.paymentMethods || []).filter(m => m.id !== 'upi'));
+      }
+    } catch (e) {
+      console.error('Failed to load settings', e);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      const res = await fetch(`/api/settings/payment-methods`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ paymentMethods })
+      });
+      if (res.ok) {
+        alert('Settings saved');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Failed to save settings');
+      }
+    } catch (e) {
+      console.error('Save settings error', e);
+      alert('Failed to save settings');
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -2220,6 +2305,8 @@ function AdminDashboard() {
         loadOrders();
       } else if (activeTab === 'banners') {
         loadBanners();
+      } else if (activeTab === 'settings') {
+        loadSettings();
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -2754,7 +2841,8 @@ function AdminDashboard() {
             { id: 'products', icon: Package, label: 'Products', color: 'from-purple-500 to-purple-600' },
             { id: 'users', icon: Users, label: 'Users', color: 'from-green-500 to-green-600' },
             { id: 'orders', icon: ShoppingBag, label: 'Orders', color: 'from-amber-500 to-amber-600' },
-            { id: 'banners', icon: Image, label: 'Banners', color: 'from-pink-500 to-pink-600' }
+            { id: 'banners', icon: Image, label: 'Banners', color: 'from-pink-500 to-pink-600' },
+            { id: 'settings', icon: Settings, label: 'Settings', color: 'from-slate-500 to-slate-600' }
           ].map((item) => (
             <button
               key={item.id}
@@ -3995,6 +4083,78 @@ function AdminDashboard() {
           )}
 
           
+          {/* Settings */}
+          {activeTab === 'settings' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-slate-800">Settings</h2>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-2xl font-bold">Payment Methods</h3>
+                    <p className="text-sm text-gray-500">Enable or disable the payment options shown to customers.</p>
+                  </div>
+                  <div className="text-sm text-gray-400">Last saved: <span className="font-medium text-gray-700">just now</span></div>
+                </div>
+
+                {loadingSettings ? (
+                  <div className="py-8 text-center text-gray-500">Loading settings…</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentMethods.map((m, idx) => (
+                      <div key={m.id} className="flex items-center justify-between p-4 rounded-lg border hover:shadow-sm transition">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 font-semibold">
+                            {m.id === 'cash_on_delivery' ? 'COD' : m.id === 'card' ? 'CARD' : m.id === 'khalti' ? 'KHL' : m.id.toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-800">{m.label}</div>
+                            <div className="text-sm text-gray-500">{m.id}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => {
+                              const next = [...paymentMethods];
+                              next[idx] = { ...m, enabled: !m.enabled };
+                              setPaymentMethods(next);
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${m.enabled ? 'bg-amber-600' : 'bg-gray-200'}`}
+                            aria-pressed={m.enabled}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${m.enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-6 flex items-center justify-end gap-3">
+                  <button onClick={loadSettings} className="px-4 py-2 bg-white border rounded text-gray-700 hover:bg-gray-50">Reset</button>
+                  <button onClick={saveSettings} className="px-4 py-2 bg-amber-600 text-white rounded shadow hover:brightness-95 inline-flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Settings
+                  </button>
+                </div>
+
+                {/* Shipping Charge Section */}
+                <div className="mt-8 bg-gray-50 p-4 rounded-lg border">
+                  <h4 className="text-lg font-medium mb-2">Shipping Charge</h4>
+                  <p className="text-sm text-gray-500 mb-3">Set a flat shipping fee (in NPR) applied to orders.</p>
+                  <div className="flex items-center gap-3">
+                    <input value={shippingCharge.amount ?? ''} onChange={(e) => setShippingCharge({ amount: Number(e.target.value) })} type="number" min="0" className="w-40 p-2 rounded border" />
+                    <button onClick={saveShippingCharge} className="px-4 py-2 bg-amber-600 text-white rounded">Save Shipping</button>
+                    <button onClick={loadShippingCharge} className="px-3 py-2 bg-white border rounded text-gray-700">Reset</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

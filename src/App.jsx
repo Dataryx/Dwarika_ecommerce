@@ -83,6 +83,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [shippingInfo, setShippingInfo] = useState(null); // Store shipping info from checkout
   const [lastOrder, setLastOrder] = useState(null);
+  const [shippingCharge, setShippingCharge] = useState(null); // loaded from server
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [user, setUser] = useState(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -141,6 +143,19 @@ function App() {
     if (path.startsWith('/forgot-password')) return 'forgotPassword';
     if (path.startsWith('/admin')) return 'admin';
     return 'home';
+  };
+
+  // Helper to determine current shipping amount (server state -> localStorage -> fallback)
+  const getCurrentShippingAmount = () => {
+    if (shippingCharge && typeof shippingCharge.amount === 'number') return shippingCharge.amount;
+    try {
+      const local = localStorage.getItem('shippingCharge');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (parsed && typeof parsed.amount === 'number') return parsed.amount;
+      }
+    } catch (e) {}
+    return 500;
   };
 
   useEffect(() => {
@@ -902,6 +917,83 @@ function App() {
       loadBannersForHero();
       return () => { mounted = false };
     }, []);
+
+  // Load shipping charge from server (admin configurable)
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/settings/shipping-charge');
+        if (!mounted) return;
+        if (res.ok) {
+          const data = await res.json();
+          // server returns { shippingCharge: { amount: Number } }
+          setShippingCharge(data.shippingCharge || data);
+        }
+      } catch (err) {
+        console.error('Failed to load shipping charge', err);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  // Listen for shippingCharge updates from other tabs (admin saves write to localStorage)
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'shippingCharge') {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed.amount === 'number') setShippingCharge(parsed);
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // Refresh shipping when window/tab gains focus (covers saving in admin then returning to storefront)
+  useEffect(() => {
+    const fetchShipping = async () => {
+      try {
+        const res = await fetch('/api/settings/shipping-charge');
+        if (res.ok) {
+          const d = await res.json();
+          setShippingCharge(d.shippingCharge || d);
+          console.log('Shipping refreshed on focus', d.shippingCharge || d);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    const onFocus = () => { fetchShipping(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  // Debug: log shippingCharge changes
+  useEffect(() => {
+    console.log('shippingCharge state changed:', shippingCharge);
+  }, [shippingCharge]);
+
+  // Refresh shipping when navigating to cart/checkout/payment to ensure latest value
+  useEffect(() => {
+    if (['cart', 'checkout', 'payment'].includes(currentPage)) {
+      (async () => {
+        try {
+          const res = await fetch('/api/settings/shipping-charge');
+          if (res.ok) {
+            const d = await res.json();
+            setShippingCharge(d.shippingCharge || d);
+          }
+        } catch (err) {
+          // ignore
+        }
+      })();
+    }
+  }, [currentPage]);
 
     useEffect(() => {
       const timer = setInterval(() => {
@@ -2212,7 +2304,7 @@ function App() {
                         darkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      रु500
+                      रु{getCurrentShippingAmount().toLocaleString()}
                     </span>
                   </div>
                   <div className={`border-t pt-4 ${
@@ -2227,7 +2319,7 @@ function App() {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        रु{(getCartTotal() + 500).toLocaleString()}
+                        रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -2542,7 +2634,7 @@ function App() {
                           darkMode ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        रु500
+                        रु{getCurrentShippingAmount().toLocaleString()}
                       </span>
                     </div>
                     <div className={`flex justify-between pt-2 border-t ${
@@ -2556,8 +2648,13 @@ function App() {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        रु{(getCartTotal() + 500).toLocaleString()}
+                        रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()}
                       </span>
+                    </div>
+                    {/* Selected payment method display */}
+                    <div className="mt-4">
+                      <div className="text-sm text-gray-600">Selected payment method:</div>
+                      <div className="font-semibold text-gray-900">{paymentMethod === 'cash' ? 'Cash on Delivery' : paymentMethod === 'card' ? 'Card (Credit/Debit)' : paymentMethod === 'khalti' ? 'Khalti (Mobile Wallet)' : paymentMethod}</div>
                     </div>
                   </div>
                 </div>
@@ -2570,7 +2667,49 @@ function App() {
   };
 
   const PaymentPage = () => {
-    const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [paymentOptions, setPaymentOptions] = useState([
+      { id: 'cash_on_delivery', label: 'Cash on Delivery', enabled: true },
+      { id: 'card', label: 'Card (Credit/Debit)', enabled: true }
+    ]);
+    const [loadingPaymentOptions, setLoadingPaymentOptions] = useState(false);
+
+    useEffect(() => {
+      let mounted = true;
+      const load = async () => {
+        setLoadingPaymentOptions(true);
+        try {
+          const res = await fetch('/api/settings/payment-methods');
+          if (res.ok) {
+            const d = await res.json();
+            if (!mounted) return;
+              const serverMethods = d.paymentMethods || [];
+              console.log('payment-methods response', serverMethods);
+              const opts = serverMethods.filter(m => m.enabled);
+              // fallback: if server returned no enabled methods, default to common methods
+              if (!opts || opts.length === 0) {
+                const fallback = [
+                  { id: 'cash_on_delivery', label: 'Cash on Delivery', enabled: true },
+                  { id: 'card', label: 'Card (Credit/Debit)', enabled: true }
+                ];
+                setPaymentOptions(fallback);
+              } else {
+                setPaymentOptions(opts);
+              }
+            // pick a default if current is not available
+            const mapToLocal = (id) => id === 'cash_on_delivery' ? 'cash' : id === 'card' ? 'card' : id;
+            if (opts.length > 0) {
+              const hasCurrent = opts.some(m => mapToLocal(m.id) === paymentMethod);
+              if (!hasCurrent) setPaymentMethod(mapToLocal(opts[0].id));
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load payment options', e);
+        }
+        setLoadingPaymentOptions(false);
+      };
+      load();
+      return () => { mounted = false; };
+    }, []);
 
     const handlePayment = async (e) => {
       e.preventDefault();
@@ -2581,7 +2720,6 @@ function App() {
           setCurrentPage('login');
           return;
         }
-
         const orderData = {
           user: user._id,
           items: cart.map(item => ({
@@ -2600,13 +2738,79 @@ function App() {
             zipCode: shippingInfo.zipCode,
             country: 'Nepal'
           } : {},
-          paymentMethod: paymentMethod === 'cash' ? 'cash_on_delivery' : 'card',
+          paymentMethod: (paymentMethod === 'cash' ? 'cash_on_delivery' : (paymentMethod === 'card' ? 'card' : paymentMethod === 'khalti' ? 'khalti' : paymentMethod)),
           paymentStatus: 'pending',
           orderStatus: 'pending',
           subtotal: getCartTotal(),
-          shipping: 500,
-          total: getCartTotal() + 500
+          shipping: (shippingCharge && typeof shippingCharge.amount === 'number') ? shippingCharge.amount : 500,
+          total: getCartTotal() + getCurrentShippingAmount()
         };
+
+        // If paying with Khalti, create order first then invoke Khalti checkout
+        if (paymentMethod === 'khalti') {
+          const orderRes = await createOrder(orderData);
+          // amount in paisa (Khalti expects smallest currency unit)
+          const amountPaisa = Math.round((orderRes.total || orderData.total) * 100);
+
+          // Load Khalti script if needed
+          if (!window.KhaltiCheckout) {
+            await new Promise((resolve, reject) => {
+              const s = document.createElement('script');
+              s.src = 'https://khalti.com/static/khalti-checkout.js';
+              s.onload = resolve;
+              s.onerror = reject;
+              document.head.appendChild(s);
+            });
+          }
+
+          const publicKey = import.meta.env.VITE_KHALTI_PUBLIC_KEY || '';
+          if (!publicKey) {
+            alert('Khalti public key not configured. Set VITE_KHALTI_PUBLIC_KEY in your frontend env.');
+            return;
+          }
+
+          const config = {
+            publicKey,
+            productIdentity: orderRes._id,
+            productName: `Order ${orderRes.orderNumber || orderRes._id}`,
+            productUrl: window.location.origin,
+            eventHandler: {
+              onSuccess: async (payload) => {
+                try {
+                  const verifyRes = await fetch('/api/payments/khalti/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: payload.token, amount: payload.amount, orderId: orderRes._id })
+                  });
+                  if (verifyRes.ok) {
+                    const data = await verifyRes.json();
+                    setLastOrder(data.order || orderRes);
+                    setCart([]);
+                    setShippingInfo(null);
+                    setCurrentPage('orderSuccess');
+                  } else {
+                    const err = await verifyRes.json().catch(() => ({}));
+                    alert('Payment verification failed: ' + (err.message || 'Unknown'));
+                  }
+                } catch (err) {
+                  console.error('Verify call failed', err);
+                  alert('Payment verification failed');
+                }
+              },
+              onError: (err) => {
+                console.error('Khalti error', err);
+                alert('Khalti payment failed or was cancelled');
+              },
+              onClose: () => {
+                // user closed the widget
+              }
+            }
+          };
+
+          const checkout = new window.KhaltiCheckout(config);
+          checkout.show({ amount: amountPaisa });
+          return;
+        }
 
         const orderRes = await createOrder(orderData);
         // orderRes should contain saved order with orderNumber
@@ -2679,112 +2883,54 @@ function App() {
                   
                   {/* Payment Method Options */}
                   <div className="space-y-4 mb-6">
-                    {/* Cash on Delivery */}
-                    <div
-                      onClick={() => setPaymentMethod("cash")}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        paymentMethod === "cash"
-                          ? darkMode
-                            ? "border-amber-500 bg-amber-900/20"
-                            : "border-amber-600 bg-amber-50"
-                          : darkMode
-                          ? "border-gray-700 hover:border-gray-600"
-                          : "border-amber-200 hover:border-amber-300"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`p-3 rounded-full ${
-                              paymentMethod === "cash"
-                                ? "bg-amber-600 text-white"
-                                : darkMode
-                                ? "bg-gray-700 text-gray-400"
-                                : "bg-gray-200 text-gray-600"
-                            }`}
-                          >
-                            <Wallet className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <h3
-                              className={`text-lg font-bold ${
-                                darkMode ? "text-white" : "text-gray-900"
-                              }`}
-                            >
-                              Cash on Delivery
-                            </h3>
-                            <p
-                              className={`text-sm ${
-                                darkMode ? "text-gray-400" : "text-gray-600"
-                              }`}
-                            >
-                              Pay when you receive your order
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            paymentMethod === "cash"
-                              ? "border-amber-600 bg-amber-600"
-                              : darkMode
-                              ? "border-gray-600"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {paymentMethod === "cash" && (
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Payment - Coming Soon */}
-                    <div
-                      className={`p-4 rounded-xl border-2 ${
-                        darkMode
-                          ? "border-gray-700 bg-gray-800/50 opacity-60"
-                          : "border-gray-200 bg-gray-50 opacity-60"
-                      } relative`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`p-3 rounded-full ${
-                              darkMode ? "bg-gray-700 text-gray-500" : "bg-gray-200 text-gray-400"
-                            }`}
-                          >
-                            <CreditCard className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3
-                                className={`text-lg font-bold ${
-                                  darkMode ? "text-gray-500" : "text-gray-400"
-                                }`}
-                              >
-                                Card Payment
-                              </h3>
-                              <span className="px-2 py-1 text-xs font-bold bg-yellow-400 text-yellow-900 rounded-full flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Coming Soon
-                              </span>
+                    {loadingPaymentOptions ? (
+                      <div>Loading payment methods...</div>
+                    ) : paymentOptions.length === 0 ? (
+                      <div className="text-sm text-gray-500">No payment methods available. Please contact admin.</div>
+                    ) : (
+                      paymentOptions.map((m) => {
+                        const local = m.id === 'cash_on_delivery' ? 'cash' : m.id === 'card' ? 'card' : m.id;
+                        // render cash specifically to match existing UI
+                        if (m.id === 'cash_on_delivery') {
+                          return (
+                            <div key={m.id} onClick={() => setPaymentMethod(local)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === local ? 'border-amber-600 bg-amber-50' : 'border-amber-200 hover:border-amber-300'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className={`p-3 rounded-full ${paymentMethod === local ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                    <Wallet className="w-6 h-6" />
+                                  </div>
+                                  <div>
+                                    <h3 className="text-lg font-bold">{m.label}</h3>
+                                    <p className="text-sm text-gray-600">Pay when you receive your order</p>
+                                  </div>
+                                </div>
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === local ? 'border-amber-600 bg-amber-600' : 'border-gray-300'}`}>
+                                  {paymentMethod === local && <div className="w-2 h-2 rounded-full bg-white" />}
+                                </div>
+                              </div>
                             </div>
-                            <p
-                              className={`text-sm ${
-                                darkMode ? "text-gray-500" : "text-gray-400"
-                              }`}
-                            >
-                              Credit/Debit card payment will be available soon
-                            </p>
+                          );
+                        }
+
+                        // Card, UPI, Khalti or other methods — render selectable box
+                        return (
+                          <div key={m.id} onClick={() => setPaymentMethod(local)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === local ? 'border-amber-600 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-full bg-gray-200 text-gray-600">
+                                  {m.id === 'card' ? <CreditCard className="w-6 h-6" /> : (m.id === 'khalti' ? <Wallet className="w-6 h-6" /> : <Wallet className="w-6 h-6" />)}
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-bold">{m.label}</h3>
+                                  <p className="text-sm text-gray-600">{m.id === 'card' ? 'Pay with card' : (m.id === 'khalti' ? 'Pay via Khalti mobile wallet' : '')}</p>
+                                </div>
+                              </div>
+                              <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === local ? 'border-amber-600 bg-amber-600' : 'border-gray-300'}`}></div>
+                            </div>
                           </div>
-                        </div>
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 ${
-                            darkMode ? "border-gray-600" : "border-gray-300"
-                          }`}
-                        ></div>
-                      </div>
-                    </div>
+                        );
+                      })
+                    )}
                   </div>
 
                   {/* Cash on Delivery Message */}
@@ -2813,7 +2959,7 @@ function App() {
                               darkMode ? "text-amber-200" : "text-amber-700"
                             }`}
                           >
-                            You will pay रु{(getCartTotal() + 500).toLocaleString()} when your order is delivered.
+                            You will pay रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()} when your order is delivered.
                           </p>
                         </div>
                       </div>
@@ -2824,8 +2970,22 @@ function App() {
                   type="submit"
                   className="w-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  <Wallet className="w-5 h-5" />
-                  Place Order - Pay रु{(getCartTotal() + 500).toLocaleString()} on Delivery
+                  {paymentMethod === 'cash' ? (
+                    <>
+                      <Wallet className="w-5 h-5" />
+                      Place Order - Pay रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()} on Delivery
+                    </>
+                  ) : paymentMethod === 'card' ? (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      Place Order - Pay रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()} now
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="w-5 h-5" />
+                      Place Order - Pay रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()} now
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -2872,7 +3032,7 @@ function App() {
                         darkMode ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      रु500
+                      रु{getCurrentShippingAmount().toLocaleString()}
                     </span>
                   </div>
                   <div className={`border-t pt-4 ${
@@ -2887,7 +3047,7 @@ function App() {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                        रु{(getCartTotal() + 500).toLocaleString()}
+                        रु{(getCartTotal() + getCurrentShippingAmount()).toLocaleString()}
                       </span>
                     </div>
                   </div>
