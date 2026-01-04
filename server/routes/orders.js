@@ -25,6 +25,15 @@ router.get('/', authenticate, isAdmin, async (req, res) => {
     
     const total = await Order.countDocuments(query);
 
+    // Normalize shipping country for display: override missing or legacy 'India' to 'Nepal'
+    orders.forEach(o => {
+      if (o.shippingAddress) {
+        if (!o.shippingAddress.country || o.shippingAddress.country === 'India') {
+          o.shippingAddress.country = 'Nepal';
+        }
+      }
+    });
+
     res.json({
       orders,
       total,
@@ -43,6 +52,15 @@ router.get('/my', authenticate, async (req, res) => {
       .populate('items.product', 'name image')
       .sort({ createdAt: -1 });
 
+    // Normalize shipping country for display
+    orders.forEach(o => {
+      if (o.shippingAddress) {
+        if (!o.shippingAddress.country || o.shippingAddress.country === 'India') {
+          o.shippingAddress.country = 'Nepal';
+        }
+      }
+    });
+
     res.json({ orders });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -56,6 +74,13 @@ router.get('/my/:id', authenticate, async (req, res) => {
       .populate('items.product');
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // Normalize shipping country for display
+    if (order.shippingAddress) {
+      if (!order.shippingAddress.country || order.shippingAddress.country === 'India') {
+        order.shippingAddress.country = 'Nepal';
+      }
+    }
 
     res.json(order);
   } catch (error) {
@@ -92,6 +117,13 @@ router.post('/', authenticate, async (req, res) => {
     await order.populate('user', 'name email');
     await order.populate('items.product', 'name image');
 
+    // Normalize shipping country for display
+    if (order.shippingAddress) {
+      if (!order.shippingAddress.country || order.shippingAddress.country === 'India') {
+        order.shippingAddress.country = 'Nepal';
+      }
+    }
+
     res.status(201).json(order);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -121,6 +153,13 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
     await order.save();
     await order.populate('user', 'name email phone');
     await order.populate('items.product', 'name image');
+
+    // Normalize shipping country for display
+    if (order.shippingAddress) {
+      if (!order.shippingAddress.country || order.shippingAddress.country === 'India') {
+        order.shippingAddress.country = 'Nepal';
+      }
+    }
 
     res.json(order);
   } catch (error) {
@@ -160,6 +199,30 @@ router.get('/stats/summary', authenticate, isAdmin, async (req, res) => {
       completedOrders,
       totalRevenue: revenue
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get order status breakdown (admin only)
+router.get('/stats/breakdown', authenticate, isAdmin, async (req, res) => {
+  try {
+    const agg = await Order.aggregate([
+      { $group: { _id: '$orderStatus', count: { $sum: 1 } } }
+    ]);
+
+    const breakdown = {};
+    agg.forEach((r) => {
+      breakdown[r._id || 'unknown'] = r.count;
+    });
+
+    // Ensure all expected statuses exist with zero defaults
+    const expected = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+    expected.forEach((s) => {
+      if (!Object.prototype.hasOwnProperty.call(breakdown, s)) breakdown[s] = 0;
+    });
+
+    res.json(breakdown);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

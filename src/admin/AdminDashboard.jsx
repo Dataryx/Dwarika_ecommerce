@@ -2149,14 +2149,26 @@ function AdminDashboard() {
           ? paidOrders.reduce((sum, o) => sum + (o.total || 0), 0) / paidOrders.length
           : 0;
 
-      const statusBreakdown = {
-        pending: allOrders.filter((o) => o.orderStatus === 'pending').length,
-        confirmed: allOrders.filter((o) => o.orderStatus === 'confirmed').length,
-        processing: allOrders.filter((o) => o.orderStatus === 'processing').length,
-        shipped: allOrders.filter((o) => o.orderStatus === 'shipped').length,
-        delivered: allOrders.filter((o) => o.orderStatus === 'delivered').length,
-        cancelled: allOrders.filter((o) => o.orderStatus === 'cancelled').length
+      // Fetch an accurate status breakdown from the server-side aggregation
+      let statusBreakdown = {
+        pending: 0,
+        confirmed: 0,
+        processing: 0,
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0
       };
+      try {
+        const breakdownRes = await fetch(`${API_URL}/orders/stats/breakdown`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (breakdownRes.ok) {
+          const data = await breakdownRes.json();
+          statusBreakdown = { ...statusBreakdown, ...data };
+        }
+      } catch (e) {
+        console.error('Failed to fetch order status breakdown:', e);
+      }
 
       const productOrderCount = {};
       allOrders.forEach((order) => {
@@ -2244,6 +2256,92 @@ function AdminDashboard() {
       console.error('Error loading users:', error);
     }
   };
+
+    // Print an order by opening a printable window with order details
+    const handlePrintOrder = (order) => {
+      try {
+        const win = window.open('', '_blank');
+        if (!win) return alert('Pop-up blocked. Allow pop-ups to print.');
+
+        const itemsHtml = (order.items || []).map(i => `
+          <tr>
+            <td style="padding:8px;border:1px solid #ddd">${i.name || ''}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center">${i.quantity}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${(i.price||0).toLocaleString()}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${((i.price||0)*(i.quantity||1)).toLocaleString()}</td>
+          </tr>`).join('');
+
+        const html = `
+          <html>
+            <head>
+              <title>Order ${order.orderNumber}</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <style>
+                body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:20px}
+                .header{display:flex;justify-content:space-between;align-items:center}
+                table{width:100%;border-collapse:collapse;margin-top:12px}
+                th,td{border:1px solid #ddd;padding:8px}
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <div>
+                  <h2>Order Details</h2>
+                  <div>Order #: ${order.orderNumber}</div>
+                  <div>Date: ${new Date(order.createdAt).toLocaleString()}</div>
+                </div>
+                <div style="text-align:right">
+                  <h3>Customer</h3>
+                  <div>${order.user?.name || ''}</div>
+                  <div>${order.user?.email || ''}</div>
+                  <div>${order.shippingAddress?.phone || ''}</div>
+                </div>
+              </div>
+
+              <h4 style="margin-top:18px">Items</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="padding:8px;border:1px solid #ddd;text-align:left">Product</th>
+                    <th style="padding:8px;border:1px solid #ddd;text-align:center">Qty</th>
+                    <th style="padding:8px;border:1px solid #ddd;text-align:right">Price</th>
+                    <th style="padding:8px;border:1px solid #ddd;text-align:right">Line Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <div style="margin-top:18px;text-align:right">
+                <div>Subtotal: ₹${(order.subtotal||0).toLocaleString()}</div>
+                <div>Shipping: ₹${(order.shipping||0).toLocaleString()}</div>
+                <div style="font-weight:700;margin-top:6px">Total: ₹${(order.total||0).toLocaleString()}</div>
+              </div>
+
+              <h4 style="margin-top:22px">Shipping Address</h4>
+              <div>
+                ${order.shippingAddress?.name || ''}<br/>
+                ${order.shippingAddress?.street || ''}<br/>
+                ${order.shippingAddress?.city || ''} ${order.shippingAddress?.zipCode || ''}<br/>
+                ${order.shippingAddress?.state || ''}, ${order.shippingAddress?.country || ''}
+              </div>
+
+              <script>
+                window.onload = function(){ setTimeout(function(){ window.print(); }, 250); };
+              </script>
+            </body>
+          </html>
+        `;
+
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      } catch (e) {
+        console.error('Print error', e);
+        alert('Failed to open print window');
+      }
+    };
 
   const loadOrders = async () => {
     try {
@@ -2854,16 +2952,13 @@ function AdminDashboard() {
                           <div key={status}>
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-sm font-medium text-gray-700 capitalize">{status}</span>
-                              <span className="text-sm font-bold text-gray-800">
-                                {count} ({percentage.toFixed(1)}%)
-                              </span>
+                              <span className="text-sm font-bold text-gray-800">{count} ({percentage.toFixed(1)}%)</span>
                             </div>
-
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
                                 className={`${colors[status] || 'bg-gray-500'} h-2 rounded-full transition-all duration-500`}
                                 style={{ width: `${percentage}%` }}
-                              />
+                              ></div>
                             </div>
                           </div>
                         );
@@ -2991,7 +3086,7 @@ function AdminDashboard() {
           {/* Products */}
           {activeTab === 'products' && (
             <div>
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-3xl font-bold text-amber-800">Products</h2>
                 <button
                   onClick={() => {
@@ -3617,9 +3712,12 @@ function AdminDashboard() {
                   <div className="bg-white p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold">Order Details</h3>
-                      <button onClick={() => setSelectedOrder(null)}>
-                        <XIcon size={24} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handlePrintOrder(selectedOrder)} className="px-3 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200">Print</button>
+                        <button onClick={() => setSelectedOrder(null)}>
+                          <XIcon size={24} />
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-4">
                       <div>

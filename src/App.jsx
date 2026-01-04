@@ -2606,7 +2606,7 @@ function App() {
             city: shippingInfo.city,
             state: shippingInfo.state,
             zipCode: shippingInfo.zipCode,
-            country: 'India'
+            country: 'Nepal'
           } : {},
           paymentMethod: paymentMethod === 'cash' ? 'cash_on_delivery' : 'card',
           paymentStatus: 'pending',
