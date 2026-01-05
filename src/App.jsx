@@ -700,6 +700,7 @@ function App() {
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
               <button
+                type="button"
                 onClick={() => setCurrentPage("home")}
                 className={`${
                   currentPage === "home"
@@ -713,6 +714,7 @@ function App() {
               </button>
               {/* Admin link removed from header */}
               <button
+                type="button"
                 onClick={() => setCurrentPage("products")}
                 className={`${
                   currentPage === "products"
@@ -725,6 +727,7 @@ function App() {
                 Products
               </button>
               <button
+                type="button"
                 onClick={() => setCurrentPage("about")}
                 className={`${
                   currentPage === "about"
@@ -737,6 +740,7 @@ function App() {
                 About
               </button>
               <button
+                type="button"
                 onClick={() => setCurrentPage("contact")}
                 className={`${
                   currentPage === "contact"
@@ -771,6 +775,7 @@ function App() {
                 />
                 <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400 pointer-events-none" />
                 <button
+                  type="button"
                   onClick={localCommitSearch}
                   className={`absolute right-3 top-2.5 rounded-full transition-all duration-200 ${
                     localTempQuery.trim()
@@ -787,6 +792,7 @@ function App() {
 
               {/* Cart Icon */}
               <button
+                type="button"
                 onClick={() => setCurrentPage("cart")}
                 className="relative p-2 rounded-full hover:bg-amber-100 dark:hover:bg-gray-700 transition-colors"
               >
@@ -804,6 +810,7 @@ function App() {
               {user ? (
                 <div ref={userMenuRef} className="hidden md:block relative">
                   <button
+                    type="button"
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center gap-2 px-3 py-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700"
                   >
@@ -819,20 +826,21 @@ function App() {
                         <div className="font-semibold text-amber-800">{user.name}</div>
                         <div className="text-sm text-amber-700">{user.email}</div>
                       </div>
-                      <button onClick={() => { setCurrentPage('profile'); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-amber-100">Profile</button>
-                      <button onClick={() => { setCurrentPage('myOrders'); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-amber-100">My Orders</button>
-                      <button onClick={() => { handleLogout(); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-red-600 hover:bg-amber-100">Logout</button>
+                      <button type="button" onClick={() => { setCurrentPage('profile'); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-amber-100">Profile</button>
+                      <button type="button" onClick={() => { setCurrentPage('myOrders'); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-amber-100">My Orders</button>
+                      <button type="button" onClick={() => { handleLogout(); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-red-600 hover:bg-amber-100">Logout</button>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="hidden md:flex items-center">
-                  <button onClick={() => setCurrentPage('login')} className="px-3 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow-md">Login</button>
+                  <button type="button" onClick={() => setCurrentPage('login')} className="px-3 py-2 rounded-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white shadow-md">Login</button>
                 </div>
               )}
 
               {/* Mobile Menu Button */}
               <button
+                type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2"
               >
@@ -850,6 +858,7 @@ function App() {
             <div className="md:hidden pb-4">
               <div className="flex flex-col space-y-3">
                 <button
+                  type="button"
                   onClick={() => {
                     setCurrentPage("home");
                     setMobileMenuOpen(false);
@@ -865,6 +874,7 @@ function App() {
                   Home
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setCurrentPage("products");
                     setMobileMenuOpen(false);
@@ -880,6 +890,7 @@ function App() {
                   Products
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setCurrentPage("about");
                     setMobileMenuOpen(false);
@@ -895,6 +906,7 @@ function App() {
                   About
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setCurrentPage("contact");
                     setMobileMenuOpen(false);
@@ -915,9 +927,9 @@ function App() {
                     <div className="pt-4 px-3 border-t">
                       <div className="font-semibold text-amber-700">{user.name ? user.name.split(' ')[0] : 'User'}</div>
                     </div>
-                    <button onClick={() => { setCurrentPage('profile'); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-amber-700">Profile</button>
-                    <button onClick={() => { setCurrentPage('myOrders'); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-amber-700">My Orders</button>
-                    <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-red-600">Logout</button>
+                    <button type="button" onClick={() => { setCurrentPage('profile'); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-amber-700">Profile</button>
+                    <button type="button" onClick={() => { setCurrentPage('myOrders'); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-amber-700">My Orders</button>
+                    <button type="button" onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="text-left px-4 py-2 text-red-600">Logout</button>
                   </>
                 ) : (
                   <button
@@ -3131,7 +3143,27 @@ function App() {
             </div>
             <div className="mt-6 flex gap-3">
               <button onClick={() => { setCurrentPage('home'); setLastOrder(null); }} className="flex-1 px-4 py-2 rounded-full bg-amber-600 text-white">Continue shopping</button>
-              <button onClick={() => { setLastOrder(null); setCurrentPage('orders'); try { window.history.pushState(null,'','/orders'); } catch(e){} }} className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600">View orders</button>
+              <button
+                onClick={() => {
+                  // If we have the just-created order, navigate straight to its detail page
+                  try {
+                    if (lastOrder && (lastOrder._id || lastOrder.id)) {
+                      const id = lastOrder._id || lastOrder.id;
+                      setLastOrder(null);
+                      setCurrentPage('orderDetail');
+                      try { window.history.pushState(null, '', `/order/${id}`); } catch (e) {}
+                      return;
+                    }
+                  } catch (e) {}
+                  // Fallback: go to orders list
+                  setLastOrder(null);
+                  setCurrentPage('orders');
+                  try { window.history.pushState(null, '', '/orders'); } catch (e) {}
+                }}
+                className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600"
+              >
+                View orders
+              </button>
             </div>
           </div>
         </div>
@@ -3232,13 +3264,13 @@ function App() {
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
         <div className="max-w-3xl mx-auto p-6 rounded-2xl shadow-2xl bg-white">
           <div className="flex items-center justify-between mb-4">
-            <button onClick={() => { setCurrentPage('myOrders'); setSelectedOrderId(null); }} className="text-amber-600">← Back to orders</button>
+            <button type="button" onClick={() => { setCurrentPage('myOrders'); setSelectedOrderId(null); }} className="text-amber-600">← Back to orders</button>
             {order && (
               <div className="flex items-center gap-2">
                 {order.orderStatus === 'pending' && (
                   <>
-                    <button onClick={() => { setIsEditingOrder(true); setLocalItems((order.items || []).map(it => ({ product: it.product || it._id || it.productId, name: it.name, price: it.price, image: resolveAvatarSrc(it.image || (it.product && it.product.image) || null), quantity: Number(it.quantity || 1) }))); setLocalShipping(order.shippingAddress || {}); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Edit Order</button>
-                    <button onClick={async () => {
+                    <button type="button" onClick={() => { setIsEditingOrder(true); setLocalItems((order.items || []).map(it => ({ product: it.product || it._id || it.productId, name: it.name, price: it.price, image: resolveAvatarSrc(it.image || (it.product && it.product.image) || null), quantity: Number(it.quantity || 1) }))); setLocalShipping(order.shippingAddress || {}); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Edit Order</button>
+                    <button type="button" onClick={async () => {
                       if (!order) return;
                       if (!confirm('Delete this order? This cannot be undone.')) return;
                       try {
@@ -3699,9 +3731,9 @@ function App() {
                     <div className="p-4 border-t border-amber-50 bg-gradient-to-b from-white to-amber-50/30 flex items-center justify-between">
                       <div className="text-sm text-gray-500">Order total</div>
                       <div className="flex items-center gap-3">
-                        <button onClick={() => openOrder(o._id)} className="px-4 py-2 rounded-full bg-amber-600 text-white shadow-sm">View</button>
-                        {o.orderStatus === 'pending' && (
-                          <button onClick={() => openOrder(o._id, true)} className="px-4 py-2 rounded-full border border-amber-200 text-amber-700">Edit Order</button>
+                        <button type="button" onClick={() => openOrder(o._id)} className="px-4 py-2 rounded-full bg-amber-600 text-white shadow-sm">View</button>
+                            {o.orderStatus === 'pending' && (
+                              <button type="button" onClick={() => openOrder(o._id, true)} className="px-4 py-2 rounded-full border border-amber-200 text-amber-700">Edit Order</button>
                         )}
                       </div>
                     </div>
