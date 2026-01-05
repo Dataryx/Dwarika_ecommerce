@@ -26,7 +26,7 @@ import {
   Wallet,
   Clock,
 } from "lucide-react";
-import { fetchProducts, fetchBanners, fetchShippingCharge, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateOrder, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
+import { fetchProducts, fetchBanners, fetchShippingCharge, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateOrder, deleteOrder, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
 /* AnimatedTitle removed per request */
 
 const testimonials = [
@@ -3156,6 +3156,7 @@ function App() {
     const [loadingOrder, setLoadingOrder] = useState(true);
     const [isEditingOrder, setIsEditingOrder] = useState(false);
     const [localShipping, setLocalShipping] = useState({ street: '', city: '', state: '', zipCode: '', country: '' });
+    const [localItems, setLocalItems] = useState([]);
     const [savingOrder, setSavingOrder] = useState(false);
 
     useEffect(() => {
@@ -3166,6 +3167,7 @@ function App() {
           const data = await fetchOrderDetail(selectedOrderId);
           setOrder(data);
           setLocalShipping(data?.shippingAddress || { street: '', city: '', state: '', zipCode: '', country: '' });
+          setLocalItems((data?.items || []).map(it => ({ product: (it.product && it.product._id) ? it.product._id : (it.product || it._id || it.productId), name: it.name, price: Number(it.price || 0), image: resolveAvatarSrc(it.image || (it.product && it.product.image) || null), quantity: Number(it.quantity || 1) })));
         } catch (err) {
           console.error('Failed to load order', err);
         } finally {
@@ -3187,7 +3189,30 @@ function App() {
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
         <div className="max-w-3xl mx-auto p-6 rounded-2xl shadow-2xl bg-white">
-          <button onClick={() => { setCurrentPage('myOrders'); setSelectedOrderId(null); }} className="mb-4 text-amber-600">← Back to orders</button>
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => { setCurrentPage('myOrders'); setSelectedOrderId(null); }} className="text-amber-600">← Back to orders</button>
+            {order && (
+              <div className="flex items-center gap-2">
+                {order.orderStatus === 'pending' && (
+                  <>
+                    <button onClick={() => { setIsEditingOrder(true); setLocalItems((order.items || []).map(it => ({ product: it.product || it._id || it.productId, name: it.name, price: it.price, image: resolveAvatarSrc(it.image || (it.product && it.product.image) || null), quantity: Number(it.quantity || 1) }))); setLocalShipping(order.shippingAddress || {}); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Edit Order</button>
+                    <button onClick={async () => {
+                      if (!order) return;
+                      if (!confirm('Delete this order? This cannot be undone.')) return;
+                      try {
+                        await deleteOrder(order._id);
+                        setSelectedOrderId(null);
+                        setCurrentPage('myOrders');
+                      } catch (err) {
+                        console.error('Failed to delete order', err);
+                        alert(err.message || 'Failed to delete order');
+                      }
+                    }} className="px-3 py-1 rounded-full bg-red-600 text-white">Delete Order</button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           {loadingOrder ? (
             <div>Loading...</div>
           ) : !order ? (
@@ -3228,13 +3253,24 @@ function App() {
               <div className="mt-6">
                 <h4 className="font-semibold">Items</h4>
                 <div className="mt-2 space-y-2">
-                  {order.items.map((it) => (
-                    <div key={it._id || it.product} className="flex items-center gap-3 p-3 rounded border">
-                      <img src={it.image || ''} alt={it.name} className="w-16 h-16 object-cover rounded" />
-                      <div>
+                  {localItems.map((it, idx) => (
+                    <div key={it.product || idx} className="flex items-center gap-3 p-3 rounded border">
+                      {it.image ? (
+                        <img src={it.image} alt={it.name} className="w-16 h-16 object-cover rounded" />
+                      ) : null}
+                      <div className="flex-1">
                         <div className="font-medium">{it.name}</div>
-                        <div className="text-sm text-gray-500">Qty: {it.quantity} · रु{it.price.toLocaleString()}</div>
+                        <div className="text-sm text-gray-500">रु{it.price?.toLocaleString()}</div>
                       </div>
+                      {isEditingOrder ? (
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setLocalItems(prev => prev.map((p, pi) => pi === idx ? { ...p, quantity: Math.max(1, Number(p.quantity || 1) - 1) } : p))} className="px-2 py-1 rounded border">-</button>
+                            <div className="w-12 text-center font-medium">{it.quantity}</div>
+                            <button onClick={() => setLocalItems(prev => prev.map((p, pi) => pi === idx ? { ...p, quantity: Math.max(1, Number(p.quantity || 1) + 1) } : p))} className="px-2 py-1 rounded border">+</button>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">Qty: {it.quantity}</div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -3244,6 +3280,33 @@ function App() {
                 <div className="flex justify-between"><div className="text-sm text-amber-700">Subtotal</div><div className="font-semibold">रु{order.subtotal?.toLocaleString() || 0}</div></div>
                 <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Shipping</div><div className="font-semibold">रु{order.shipping?.toLocaleString() || 0}</div></div>
                 <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Total</div><div className="font-bold text-amber-800">रु{order.total?.toLocaleString() || 0}</div></div>
+                {order.orderStatus === 'pending' && (
+                  <div className="mt-4 flex gap-2">
+                    {isEditingOrder ? (
+                      <>
+                        <button onClick={async () => {
+                          try {
+                            setSavingOrder(true);
+                            const payload = {
+                              shippingAddress: localShipping,
+                              items: localItems.map(i => ({ product: (i.product && i.product._id) ? i.product._id : i.product, quantity: Number(i.quantity || 1), price: Number(i.price || 0) }))
+                            };
+                            const updated = await updateOrder(order._id, payload);
+                            setOrder(updated);
+                            setLocalItems((updated.items || []).map(it => ({ product: (it.product && it.product._id) ? it.product._id : (it.product || it._id), name: it.name, price: Number(it.price || 0), image: resolveAvatarSrc(it.image || (it.product && it.product.image) || null), quantity: Number(it.quantity || 1) })));
+                            setIsEditingOrder(false);
+                          } catch (err) {
+                            console.error('Failed to save order', err);
+                            alert(err.message || 'Failed to save order');
+                          } finally {
+                            setSavingOrder(false);
+                          }
+                        }} className="px-4 py-2 rounded bg-amber-600 text-white">{savingOrder ? 'Saving...' : 'Save changes'}</button>
+                        <button onClick={() => { setIsEditingOrder(false); setLocalItems((order.items || []).map(it => ({ product: it.product || it._id || it.productId, name: it.name, price: it.price, image: resolveAvatarSrc(it.image || (it.product && it.product.image) || null), quantity: Number(it.quantity || 1) }))); setLocalShipping(order.shippingAddress || {}); }} className="px-4 py-2 rounded border">Cancel</button>
+                      </>
+                        ) : null}
+                  </div>
+                )}
               </div>
             </div>
           )}

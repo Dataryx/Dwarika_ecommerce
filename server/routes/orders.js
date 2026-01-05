@@ -199,6 +199,23 @@ router.put('/my/:id', authenticate, async (req, res) => {
   }
 });
 
+// Delete own order (user) - allowed only while orderStatus is 'pending'
+router.delete('/my/:id', authenticate, async (req, res) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, user: req.user._id });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (order.orderStatus !== 'pending') {
+      return res.status(400).json({ message: 'Order cannot be deleted after it leaves pending status' });
+    }
+
+    await Order.findByIdAndDelete(order._id);
+    res.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Delete order (admin only)
 router.delete('/:id', authenticate, isAdmin, async (req, res) => {
   try {

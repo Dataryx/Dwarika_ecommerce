@@ -165,6 +165,20 @@ export const updateOrder = async (orderId, payload) => {
   return await response.json();
 };
 
+export const deleteOrder = async (orderId) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Not authenticated');
+  const response = await fetch(`${API_URL}/orders/my/${orderId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to delete order');
+  }
+  return await response.json();
+};
+
 export const updateProfile = async (profileData) => {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Not authenticated');
