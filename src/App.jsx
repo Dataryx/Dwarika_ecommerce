@@ -265,16 +265,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Push state when currentPage changes so refresh keeps the same page
-  useEffect(() => {
-    try {
-      const path = pageToPath(currentPage);
-      const cur = window.location.pathname || '/';
-      if (cur !== path) {
-        window.history.pushState({}, document.title, path);
-      }
-    } catch (e) {}
-  }, [currentPage]);
+  
 
   // Click-away handler to close user menu
   const userMenuRef = useRef(null);
@@ -3140,7 +3131,7 @@ function App() {
             </div>
             <div className="mt-6 flex gap-3">
               <button onClick={() => { setCurrentPage('home'); setLastOrder(null); }} className="flex-1 px-4 py-2 rounded-full bg-amber-600 text-white">Continue shopping</button>
-              <button onClick={() => { setLastOrder(null); setCurrentPage('orders'); }} className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600">View orders</button>
+              <button onClick={() => { setLastOrder(null); setCurrentPage('orders'); try { window.history.pushState(null,'','/orders'); } catch(e){} }} className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600">View orders</button>
             </div>
           </div>
         </div>
@@ -3149,8 +3140,43 @@ function App() {
   };
 
   // Order detail page
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(() => {
+    try {
+      const parts = (window.location.pathname || '').split('/').filter(Boolean);
+      if (parts[0] === 'order' && parts[1]) return parts[1];
+    } catch (e) {}
+    return null;
+  });
   const [selectedOrderEdit, setSelectedOrderEdit] = useState(false);
+  // helper to open order and push URL so refresh preserves state
+  const openOrder = (id, edit = false) => {
+    if (!id) return;
+    setSelectedOrderId(id);
+    setSelectedOrderEdit(edit);
+    setCurrentPage('orderDetail');
+    try { window.history.pushState(null, '', `/order/${id}`); } catch (e) {}
+  };
+
+  // when app loads or currentPage changes to orderDetail, populate selectedOrderId from URL
+  useEffect(() => {
+    if (currentPage === 'orderDetail') {
+      try {
+        const parts = (window.location.pathname || '').split('/').filter(Boolean);
+        if (parts[0] === 'order' && parts[1]) setSelectedOrderId(parts[1]);
+      } catch (e) {}
+    }
+  }, [currentPage]);
+
+  // ensure on initial mount we read the URL and open order if present
+  useEffect(() => {
+    try {
+      const parts = (window.location.pathname || '').split('/').filter(Boolean);
+      if (parts[0] === 'order' && parts[1]) {
+        setSelectedOrderId(parts[1]);
+        setCurrentPage('orderDetail');
+      }
+    } catch (e) {}
+  }, []);
   const OrderDetailPage = () => {
     const [order, setOrder] = useState(null);
     const [loadingOrder, setLoadingOrder] = useState(true);
@@ -3612,34 +3638,60 @@ function App() {
 
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
-        <div className="max-w-4xl mx-auto p-6">
-          <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>My Orders</h2>
+        <div className="max-w-6xl mx-auto p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-3xl font-extrabold ${darkMode ? 'text-white' : 'text-amber-800'}`}>My Orders</h2>
+            <div className="text-sm text-gray-500">{loadingOrders ? 'Refreshing…' : `${orders.length} orders`}</div>
+          </div>
+
           {loadingOrders ? (
-            <div className="text-gray-500">Loading...</div>
+            <div className="text-center py-12 text-gray-500">Loading orders…</div>
           ) : orders.length === 0 ? (
-            <div className="text-gray-500">You have no orders yet.</div>
+            <div className="text-center py-12 text-gray-500">You have no orders yet.</div>
           ) : (
-            <div className="space-y-4">
-              {orders.map((o) => (
-                <div key={o._id} className="p-4 rounded-lg shadow-md bg-gradient-to-br from-stone-50 to-amber-50 border-2 border-amber-100">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold text-amber-800">{o.orderNumber || o._id}</div>
-                      <div className="text-sm text-amber-700">{new Date(o.createdAt).toLocaleString()}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {orders.map((o) => {
+                const thumb = resolveAvatarSrc((o.items && o.items[0] && (o.items[0].image || (o.items[0].product && o.items[0].product.image))) || null);
+                return (
+                  <div key={o._id} className="relative rounded-2xl overflow-hidden bg-white shadow-lg transform transition hover:-translate-y-2">
+                    <div className="absolute -left-8 -top-8 w-40 h-40 bg-gradient-to-tr from-amber-100 to-yellow-50 opacity-80 rotate-12" style={{filter: 'blur(24px)'}} />
+                    <div className="p-5 relative z-10 flex gap-4 items-center">
+                      <div className="w-20 h-20 rounded-xl bg-amber-50 flex items-center justify-center overflow-hidden">
+                        {thumb ? (
+                          <img src={thumb} alt="product" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-2xl text-amber-600 font-bold">JW</div>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="font-semibold text-lg text-amber-800">{o.orderNumber || o._id}</div>
+                            <div className="text-sm text-gray-500">{new Date(o.createdAt).toLocaleString()}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-amber-800">रु{(o.total || 0).toLocaleString()}</div>
+                            <div className={`mt-1 inline-block px-3 py-1 rounded-full text-sm ${o.orderStatus === 'pending' ? 'bg-yellow-100 text-amber-800' : 'bg-gray-100 text-gray-700'}`}>{o.orderStatus}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 text-sm text-gray-600 line-clamp-2">{o.items && o.items.length ? `${o.items.length} item${o.items.length>1?'s':''} • ${o.items.map(it=>it.name).slice(0,2).join(', ')}` : 'No items data'}</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-amber-800">रु{(o.total || 0).toLocaleString()}</div>
-                      <div className="text-sm text-amber-700">{o.orderStatus}</div>
+
+                    <div className="p-4 border-t border-amber-50 bg-gradient-to-b from-white to-amber-50/30 flex items-center justify-between">
+                      <div className="text-sm text-gray-500">Order total</div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => openOrder(o._id)} className="px-4 py-2 rounded-full bg-amber-600 text-white shadow-sm">View</button>
+                        {o.orderStatus === 'pending' && (
+                          <button onClick={() => openOrder(o._id, true)} className="px-4 py-2 rounded-full border border-amber-200 text-amber-700">Edit Order</button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-3 flex gap-2">
-                    <button onClick={() => { setCurrentPage('orderDetail'); setSelectedOrderId(o._id); }} className="px-3 py-1 rounded-full bg-amber-600 text-white">View</button>
-                    {o.orderStatus === 'pending' && (
-                      <button onClick={() => { setCurrentPage('orderDetail'); setSelectedOrderId(o._id); setSelectedOrderEdit(true); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Edit</button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
