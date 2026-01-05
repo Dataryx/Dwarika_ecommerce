@@ -167,6 +167,38 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
   }
 });
 
+// Update own order (user) - allowed only while orderStatus is 'pending'
+router.put('/my/:id', authenticate, async (req, res) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, user: req.user._id });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (order.orderStatus !== 'pending') {
+      return res.status(400).json({ message: 'Order cannot be edited after it leaves pending status' });
+    }
+
+    // Only allow updates to shippingAddress and items from client
+    const allowed = {};
+    if (req.body.shippingAddress) allowed.shippingAddress = req.body.shippingAddress;
+    if (req.body.items) allowed.items = req.body.items;
+
+    Object.keys(allowed).forEach(k => { order[k] = allowed[k]; });
+
+    // Recalculate totals if items provided
+    if (allowed.items) {
+      // items: [{ product, quantity, price }]
+      order.subtotal = order.items.reduce((s, it) => s + ((it.price || 0) * (it.quantity || 0)), 0);
+      order.total = order.subtotal + (order.shipping || 0);
+    }
+
+    await order.save();
+    await order.populate('items.product', 'name image');
+    res.json(order);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // Delete order (admin only)
 router.delete('/:id', authenticate, isAdmin, async (req, res) => {
   try {

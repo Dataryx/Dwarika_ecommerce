@@ -36,6 +36,21 @@ router.post('/image', authenticate, isAdmin, singleUploadHandler('image'), (req,
   }
 });
 
+// Allow regular authenticated users to upload their avatar (not admin-only)
+router.post('/avatar', authenticate, singleUploadHandler('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ message: 'Avatar uploaded', url: fileUrl, filename: req.file.filename });
+  } catch (error) {
+    console.error('Error in avatar upload route:', error && error.message ? error.message : error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Upload multiple images
 router.post('/images', authenticate, isAdmin, upload.array('images', 10), (req, res) => {
   try {

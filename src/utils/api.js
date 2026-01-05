@@ -150,6 +150,21 @@ export const fetchOrderDetail = async (orderId) => {
   return await response.json();
 };
 
+export const updateOrder = async (orderId, payload) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Not authenticated');
+  const response = await fetch(`${API_URL}/orders/my/${orderId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update order');
+  }
+  return await response.json();
+};
+
 export const updateProfile = async (profileData) => {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Not authenticated');
@@ -162,6 +177,26 @@ export const updateProfile = async (profileData) => {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.message || 'Failed to update profile');
   }
+  return await response.json();
+};
+
+export const uploadAvatar = async (file) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Not authenticated');
+  const form = new FormData();
+  form.append('image', file);
+
+  const response = await fetch(`${API_URL}/upload/avatar`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: form
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to upload avatar');
+  }
+
   return await response.json();
 };
 

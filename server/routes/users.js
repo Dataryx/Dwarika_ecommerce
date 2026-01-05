@@ -73,6 +73,34 @@ router.post('/', authenticate, isAdmin, async (req, res) => {
   }
 });
 
+  // Update current user's profile (users cannot change their name here)
+  router.put('/me', authenticate, async (req, res) => {
+    try {
+      const { phone, address, addresses, avatar, currentPassword, newPassword } = req.body;
+      const update = {};
+      if (phone) update.phone = phone;
+      if (address) update.address = address; // legacy single address
+      if (addresses) update.addresses = addresses; // preferred multi-address
+      // allow explicit null to remove avatar
+      if (Object.prototype.hasOwnProperty.call(req.body, 'avatar')) update.avatar = avatar;
+
+      // Handle password change if requested
+      if (currentPassword && newPassword) {
+        const me = await User.findById(req.user._id).select('+password');
+        if (!me) return res.status(404).json({ message: 'User not found' });
+        const ok = await bcrypt.compare(currentPassword, me.password);
+        if (!ok) return res.status(400).json({ message: 'Current password is incorrect' });
+        update.password = await bcrypt.hash(newPassword, 10);
+      }
+
+      const user = await User.findByIdAndUpdate(req.user._id, update, { new: true }).select('-password');
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
 // Update user (admin only)
 router.put('/:id', authenticate, isAdmin, async (req, res) => {
   try {
@@ -108,23 +136,6 @@ router.delete('/:id', authenticate, isAdmin, async (req, res) => {
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-});
-
-// Update current user's profile
-router.put('/me', authenticate, async (req, res) => {
-  try {
-    const { name, phone, address } = req.body;
-    const update = {};
-    if (name) update.name = name;
-    if (phone) update.phone = phone;
-    if (address) update.address = address;
-
-    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true }).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(user);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
   }
 });
 

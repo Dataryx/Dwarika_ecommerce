@@ -34,6 +34,22 @@ const userSchema = new mongoose.Schema({
     zipCode: String,
     country: String
   },
+  // Avatar URL or data URI (base64) stored as string
+  avatar: {
+    type: String,
+    default: null
+  },
+  // Support multiple saved addresses (frontend expects array)
+  addresses: [
+    {
+      label: String,
+      line1: String,
+      city: String,
+      state: String,
+      zip: String,
+      country: String
+    }
+  ],
   status: {
     type: String,
     enum: ['active', 'inactive', 'suspended'],

@@ -26,7 +26,7 @@ import {
   Wallet,
   Clock,
 } from "lucide-react";
-import { fetchProducts, fetchBanners, fetchShippingCharge, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
+import { fetchProducts, fetchBanners, fetchShippingCharge, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateOrder, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
 /* AnimatedTitle removed per request */
 
 const testimonials = [
@@ -92,6 +92,41 @@ function App() {
   const [lastOrder, setLastOrder] = useState(null);
   const [shippingCharge, setShippingCharge] = useState(null); // loaded from server
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const apiOrigin = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+  const resolveAvatarSrc = (avatar) => {
+    if (!avatar) return null;
+    if (typeof avatar === 'string' && (avatar.startsWith('data:') || avatar.startsWith('http'))) return avatar;
+    // server returns paths like /uploads/filename
+    return apiOrigin + avatar;
+  };
+  const generateAvatarDataUrl = (name) => {
+    const initials = (name || 'U').split(' ').map(n => n[0] || '').join('').slice(0,2).toUpperCase() || 'U';
+    let hash = 0; for (let i=0;i<initials.length;i++) hash = initials.charCodeAt(i) + ((hash<<5)-hash);
+    const hue = Math.abs(hash) % 360;
+    const bg = `hsl(${hue} 70% 70%)`;
+    const fg = '#1f2937';
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' dy='.08em' text-anchor='middle' font-family='Inter, Roboto, Arial' font-size='48' fill='${fg}' font-weight='700'>${initials}</text></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  };
+  const generateRandomAvatarDataUrl = (name) => {
+    const initials = (name || 'U').split(' ').map(n => n[0] || '').join('').slice(0,2).toUpperCase() || 'U';
+    // random hue and two-tone pattern
+    const rand = () => Math.floor(Math.random()*360);
+    const hue1 = rand();
+    const hue2 = (hue1 + 60 + Math.floor(Math.random()*120)) % 360;
+    const bg1 = `hsl(${hue1} 65% 65%)`;
+    const bg2 = `hsl(${hue2} 60% 55%)`;
+    const fg = '#0f172a';
+    const shapes = [
+      `<rect width='100%' height='100%' fill='${bg1}'/>`,
+      `<linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='${bg1}'/><stop offset='1' stop-color='${bg2}'/></linearGradient><rect width='100%' height='100%' fill='url(#g)'/>`,
+      `<rect width='100%' height='100%' fill='${bg1}'/><circle cx='88' cy='40' r='40' fill='${bg2}' opacity='0.9'/>`,
+      `<rect width='100%' height='100%' fill='${bg2}'/><path d='M0 80 Q64 10 128 80 V128 H0z' fill='${bg1}' opacity='0.9'/>`
+    ];
+    const shape = shapes[Math.floor(Math.random()*shapes.length)];
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>${shape}<text x='50%' y='58%' dy='.08em' text-anchor='middle' font-family='Inter, Roboto, Arial' font-size='96' fill='${fg}' font-weight='800'>${initials}</text></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  };
   // Load shipping charge from server (admin configurable)
   
   const [user, setUser] = useState(null);
@@ -172,7 +207,7 @@ function App() {
       if (!token) return;
       try {
         const me = await getCurrentUser();
-        if (me) setUser(me);
+        if (me) setUser({ ...me, avatar: resolveAvatarSrc(me.avatar || null) });
         else {
           localStorage.removeItem('token');
           setToken(null);
@@ -260,7 +295,7 @@ function App() {
       if (res?.token) {
         localStorage.setItem('token', res.token);
         setToken(res.token);
-        setUser(res.user || null);
+        setUser(res.user ? { ...res.user, avatar: resolveAvatarSrc(res.user.avatar || null) } : null);
         setCurrentPage('home');
         if (postLoginRedirect) {
           setCurrentPage(postLoginRedirect);
@@ -282,20 +317,20 @@ function App() {
     };
 
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+      <div className="min-h-screen bg-white py-20">
         <div className="max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
           <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white">
             <h2 className="text-2xl font-bold">Welcome back</h2>
             <p className="text-sm mt-1 opacity-90">Login to continue shopping</p>
           </div>
-          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+          <div className={`p-6 ${darkMode ? 'bg-amber-900' : 'bg-white'}`}>
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                <label className={`block mb-1 ${darkMode ? 'text-amber-200' : 'text-gray-700'}`}>Email</label>
                 <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 rounded border" />
               </div>
               <div>
-                <label className={`block mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
+                <label className={`block mb-1 ${darkMode ? 'text-amber-200' : 'text-gray-700'}`}>Password</label>
                 <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-3 rounded border" />
               </div>
               <div className="flex items-center justify-between">
@@ -326,7 +361,7 @@ function App() {
             // refresh current user
             try {
               const me = await getCurrentUser();
-              if (mounted) setUser(me);
+              if (mounted) setUser({ ...me, avatar: resolveAvatarSrc(me?.avatar || null) });
             } catch (e) {
               // ignore
             }
@@ -341,7 +376,7 @@ function App() {
           if (res?.token) {
             localStorage.setItem('token', res.token);
             setToken(res.token);
-            setUser(res.user || null);
+            setUser(res.user ? { ...res.user, avatar: resolveAvatarSrc(res.user.avatar || null) } : null);
           }
           setVerifyStatus('success');
         } catch (err) {
@@ -354,7 +389,7 @@ function App() {
     }, [token]);
 
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
+      <div className={`min-h-screen ${darkMode ? 'bg-amber-900' : 'bg-stone-100'} py-20`}>
         <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
           {verifyStatus === 'loading' && <p>Verifying your email…</p>}
           {verifyStatus === 'success' && (
@@ -653,7 +688,7 @@ function App() {
     return (
       <nav
         className={`sticky top-0 z-50 ${
-          darkMode ? "bg-gray-900" : "bg-gradient-to-b from-stone-100 via-stone-50 to-stone-100"
+          darkMode ? "bg-amber-900" : "bg-gradient-to-b from-stone-100 via-stone-50 to-stone-100"
         } shadow-lg`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1218,7 +1253,7 @@ function App() {
               >
                 <div
                   className={`relative h-48 rounded-2xl overflow-hidden ${
-                    darkMode ? "bg-gray-800" : "bg-stone-200"
+                    darkMode ? "bg-amber-800" : "bg-stone-200"
                   } transform group-hover:scale-105 transition-all duration-300 shadow-lg group-hover:shadow-2xl`}
                 >
                   <img
@@ -1258,7 +1293,7 @@ function App() {
       .slice(0, 3);
 
     return (
-      <div className={`py-20 ${darkMode ? "bg-gray-800" : "bg-gradient-to-b from-stone-100 via-stone-50 to-amber-50"}`}>
+      <div className={`py-20 ${darkMode ? "bg-amber-800" : "bg-gradient-to-b from-stone-100 via-stone-50 to-amber-50"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
           <h2
@@ -1496,7 +1531,7 @@ function App() {
             <div
               key={index}
                 className={`group relative ${
-                  darkMode ? "bg-gray-800" : "bg-gradient-to-br from-stone-50 via-amber-50/30 to-stone-100"
+                  darkMode ? "bg-amber-800" : "bg-gradient-to-br from-stone-50 via-amber-50/30 to-stone-100"
                 } p-8 rounded-2xl shadow-xl border-2 ${
                   darkMode ? "border-gray-700" : "border-amber-200"
                 } hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2`}
@@ -1561,7 +1596,7 @@ function App() {
             <div
               className={`inline-flex items-center gap-3 px-6 py-3 rounded-full ${
                 darkMode
-                  ? "bg-gray-800 border border-gray-700"
+                  ? "bg-amber-800 border border-amber-700"
                   : "bg-gradient-to-br from-stone-50 to-amber-50 border border-amber-300 shadow-lg"
               }`}
             >
@@ -1835,7 +1870,7 @@ function App() {
           </div>
           <div
             className={`${
-              darkMode ? "bg-gray-800" : "bg-amber-50"
+              darkMode ? "bg-amber-800" : "bg-amber-50"
             } p-8 rounded-xl`}
           >
             <h3
@@ -1910,7 +1945,7 @@ function App() {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <div
           className={`relative max-w-4xl w-full max-h-[90vh] overflow-y-auto ${
-            darkMode ? "bg-gray-800" : "bg-gradient-to-br from-stone-50 via-stone-100 to-amber-50"
+            darkMode ? "bg-amber-800" : "bg-gradient-to-br from-stone-50 via-stone-100 to-amber-50"
           } rounded-2xl shadow-2xl`}
         >
           <button
@@ -2092,7 +2127,7 @@ function App() {
                 <div
                   key={product.id}
                   className={`${
-                    darkMode ? "bg-gray-800" : "bg-gradient-to-br from-stone-50 to-amber-50/30"
+                    darkMode ? "bg-amber-800" : "bg-gradient-to-br from-stone-50 to-amber-50/30"
                   } rounded-xl shadow-xl overflow-hidden transform hover:scale-105 transition-all duration-300 border-2 ${
                     darkMode ? "border-gray-700" : "border-amber-200"
                   }`}
@@ -2282,7 +2317,7 @@ function App() {
             <div className="lg:col-span-1">
               <div
                 className={`sticky top-24 ${
-                  darkMode ? "bg-gray-800" : "bg-gradient-to-br from-stone-50 via-amber-50/20 to-stone-100"
+                  darkMode ? "bg-amber-800" : "bg-gradient-to-br from-stone-50 via-amber-50/20 to-stone-100"
                 } rounded-xl shadow-lg p-6 border-2 ${
                   darkMode ? "border-gray-700" : "border-amber-200"
                 }`}
@@ -3115,17 +3150,22 @@ function App() {
 
   // Order detail page
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedOrderEdit, setSelectedOrderEdit] = useState(false);
   const OrderDetailPage = () => {
     const [order, setOrder] = useState(null);
     const [loadingOrder, setLoadingOrder] = useState(true);
+    const [isEditingOrder, setIsEditingOrder] = useState(false);
+    const [localShipping, setLocalShipping] = useState({ street: '', city: '', state: '', zipCode: '', country: '' });
+    const [savingOrder, setSavingOrder] = useState(false);
 
     useEffect(() => {
       const load = async () => {
         if (!selectedOrderId) return;
+        setLoadingOrder(true);
         try {
-          setLoadingOrder(true);
           const data = await fetchOrderDetail(selectedOrderId);
           setOrder(data);
+          setLocalShipping(data?.shippingAddress || { street: '', city: '', state: '', zipCode: '', country: '' });
         } catch (err) {
           console.error('Failed to load order', err);
         } finally {
@@ -3134,6 +3174,13 @@ function App() {
       };
       load();
     }, [selectedOrderId]);
+
+    useEffect(() => {
+      if (selectedOrderEdit && order) {
+        if (order.orderStatus === 'pending') setIsEditingOrder(true);
+        setSelectedOrderEdit(false);
+      }
+    }, [selectedOrderEdit, order]);
 
     if (!selectedOrderId) return null;
 
@@ -3151,13 +3198,33 @@ function App() {
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-amber-700">Status</div>
-                  <div className="font-medium">{order.orderStatus}</div>
+                  <div className="font-semibold">{order.orderStatus}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-amber-700">Payment</div>
-                  <div className="font-medium">{order.paymentStatus}</div>
+                  <div className="text-sm text-amber-700">Placed</div>
+                  <div className="font-semibold">{new Date(order.createdAt).toLocaleString()}</div>
                 </div>
               </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {isEditingOrder ? (
+                  <div className="space-y-2">
+                    <input value={localShipping.street} onChange={(e) => setLocalShipping(prev => ({ ...prev, street: e.target.value }))} className="w-full p-2 border rounded" placeholder="Address line" />
+                    <div className="flex gap-2">
+                      <input value={localShipping.city} onChange={(e) => setLocalShipping(prev => ({ ...prev, city: e.target.value }))} className="flex-1 p-2 border rounded" placeholder="City" />
+                      <input value={localShipping.state} onChange={(e) => setLocalShipping(prev => ({ ...prev, state: e.target.value }))} className="w-32 p-2 border rounded" placeholder="State" />
+                      <input value={localShipping.zipCode} onChange={(e) => setLocalShipping(prev => ({ ...prev, zipCode: e.target.value }))} className="w-24 p-2 border rounded" placeholder="ZIP" />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="font-medium">{order.shippingAddress?.street}</div>
+                    <div className="text-sm text-gray-600">{order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zipCode}</div>
+                    <div className="text-sm text-gray-600">{order.shippingAddress?.country}</div>
+                  </div>
+                )}
+              </div>
+
               <div className="mt-6">
                 <h4 className="font-semibold">Items</h4>
                 <div className="mt-2 space-y-2">
@@ -3172,6 +3239,7 @@ function App() {
                   ))}
                 </div>
               </div>
+
               <div className="mt-6 p-4 rounded bg-amber-50 border border-amber-100">
                 <div className="flex justify-between"><div className="text-sm text-amber-700">Subtotal</div><div className="font-semibold">रु{order.subtotal?.toLocaleString() || 0}</div></div>
                 <div className="flex justify-between mt-2"><div className="text-sm text-amber-700">Shipping</div><div className="font-semibold">रु{order.shipping?.toLocaleString() || 0}</div></div>
@@ -3188,23 +3256,71 @@ function App() {
     const [name, setName] = useState(user?.name || '');
     const [phone, setPhone] = useState(user?.phone || '');
     const [saving, setSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+      const [avatarPreview, setAvatarPreview] = useState(resolveAvatarSrc(user?.avatar || null) || generateAvatarDataUrl(user?.name || ''));
+    const [addresses, setAddresses] = useState(user?.addresses || []);
+    const [primaryAddress, setPrimaryAddress] = useState(user?.addresses?.[0] || { line1: '', city: '', state: '', zip: '' });
+    const [orders, setOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(true);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [changingPassword, setChangingPassword] = useState(false);
 
     useEffect(() => {
+      // If no user object yet
       if (!user) {
-        setPostLoginRedirect('profile');
-        setCurrentPage('login');
-      } else {
-        // sync local fields when user loads
-        setName(user.name || '');
-        setPhone(user.phone || '');
+        // If there's no token either, redirect to login
+        if (!token) {
+          setPostLoginRedirect('profile');
+          setCurrentPage('login');
+        }
+        // otherwise token exists but user not loaded yet — wait.
+        return;
       }
-    }, [user]);
+      // sync local fields when user loads
+      setName(user.name || '');
+      setPhone(user.phone || '');
+      setAddresses(user.addresses || []);
+      setPrimaryAddress((user.addresses && user.addresses[0]) ? user.addresses[0] : { line1: '', city: '', state: '', zip: '' });
+      setAvatarPreview(resolveAvatarSrc(user.avatar || null) || generateAvatarDataUrl(user.name || ''));
+      setIsEditing(false);
+    }, [user, token]);
+
+    useEffect(() => {
+      if (addresses && addresses[0]) setPrimaryAddress(addresses[0]);
+    }, [addresses]);
+
+    useEffect(() => {
+      const loadOrders = async () => {
+        try {
+          setLoadingOrders(true);
+          const data = await fetchMyOrders();
+          setOrders(data || []);
+        } catch (err) {
+          console.error('Failed to load orders', err);
+          setOrders([]);
+        } finally {
+          setLoadingOrders(false);
+        }
+      };
+      loadOrders();
+    }, []);
+
+    
 
     const save = async () => {
       try {
         setSaving(true);
-        const updated = await updateProfile({ name, phone });
-        setUser(updated);
+        // ensure primaryAddress is included as the first address
+        const newAddresses = Array.isArray(addresses) ? [...addresses] : [];
+        if (!newAddresses[0] || typeof newAddresses[0] !== 'object') newAddresses[0] = primaryAddress;
+        else newAddresses[0] = primaryAddress;
+        const payload = { phone, addresses: newAddresses };
+        const updated = await updateProfile(payload);
+        const normalized = updated ? { ...updated, avatar: resolveAvatarSrc(updated.avatar || null) } : updated;
+        setUser(normalized);
+        setAvatarPreview(resolveAvatarSrc(normalized?.avatar || null) || generateAvatarDataUrl(normalized?.name || name || ''));
+        setIsEditing(false);
         alert('Profile updated');
       } catch (err) {
         alert(err.message || 'Failed to update profile');
@@ -3213,28 +3329,196 @@ function App() {
       }
     };
 
+    const cancelEdit = () => {
+      setName(user?.name || '');
+      setPhone(user?.phone || '');
+      setAddresses(user?.addresses || []);
+      setPrimaryAddress((user?.addresses && user.addresses[0]) ? user.addresses[0] : { line1: '', city: '', state: '', zip: '' });
+      setAvatarPreview(resolveAvatarSrc(user?.avatar || null) || generateAvatarDataUrl(user?.name || ''));
+      setIsEditing(false);
+    };
+
+    const addAddress = () => {
+      setAddresses(prev => [...prev, { line1: '', city: '', state: '', zip: '' }]);
+    };
+
+    const updateAddress = (idx, key, value) => {
+      setAddresses(prev => prev.map((a,i) => i===idx ? { ...a, [key]: value } : a));
+    };
+
+    const removeAddress = (idx) => {
+      setAddresses(prev => prev.filter((_,i)=>i!==idx));
+    };
+
+    const changePassword = async (e) => {
+      e.preventDefault();
+      try {
+        setChangingPassword(true);
+        // best-effort: call updateProfile with password fields; backend may implement it
+        await updateProfile({ currentPassword, newPassword });
+        setCurrentPassword('');
+        setNewPassword('');
+        alert('Password changed (if supported by server).');
+      } catch (err) {
+        alert(err.message || 'Failed to change password');
+      } finally {
+        setChangingPassword(false);
+      }
+    };
+
+    const randomizeAvatar = async () => {
+      try {
+        setSaving(true);
+        const dataUrl = generateRandomAvatarDataUrl(name || user?.name || 'U');
+        // Persist avatar (server accepts data URLs as avatar string)
+        await updateProfile({ avatar: dataUrl });
+        setUser(prev => prev ? { ...prev, avatar: dataUrl } : prev);
+        setAvatarPreview(dataUrl);
+        alert('Random avatar set');
+      } catch (err) {
+        alert(err?.message || 'Failed to set random avatar');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    
+
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-stone-100'} py-20`}>
-        <div className="max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
-          <div className="p-6 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white text-center">
-            <h2 className="text-2xl font-bold">Profile</h2>
-          </div>
-          <div className={`p-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-            <div className="mb-4">
-              <label className="text-sm text-gray-500">Name</label>
-              <input value={name} onChange={(e)=>setName(e.target.value)} className="w-full p-3 rounded border mt-1" />
+        <div className="max-w-5xl mx-auto px-4">
+          <style>{`
+            .profile-card { border-radius: 1rem; }
+            .profile-input:focus { box-shadow: 0 0 0 4px rgba(253,224,71,0.12); outline: none; }
+            .profile-action { transition: transform .18s ease, box-shadow .18s ease; }
+            .profile-action:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(15,23,42,0.08); }
+            .address-card { border-radius: 0.75rem; transition: box-shadow .15s ease; }
+            .address-card:hover { box-shadow: 0 8px 20px rgba(15,23,42,0.06); }
+            .order-item:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(15,23,42,0.05); }
+          `}</style>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="p-6 bg-white profile-card shadow-lg"> 
+              <div className="flex flex-col items-center">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-amber-100 to-yellow-50 flex items-center justify-center overflow-hidden text-4xl font-extrabold text-amber-900 ring-4 ring-white">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    (user?.name || 'D').split(' ').map(n=>n[0]).join('').slice(0,2)
+                  )}
+                </div>
+                <div className="mt-3 w-full text-center">
+                  <div className="text-lg font-semibold text-gray-800">{user?.name}</div>
+                </div>
+                <div className="mt-4 w-full text-center">
+                  <div className="text-sm text-gray-500">Signed in as</div>
+                  <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{user?.email}</div>
+                </div>
+                <div className="mt-6 w-full flex justify-center gap-3">
+                  <button onClick={handleLogout} className="px-4 py-2 rounded-full bg-amber-600 text-white shadow profile-action">Logout</button>
+                </div>
+              </div>
             </div>
-            <div className="mb-4">
-              <label className="text-sm text-gray-500">Email</label>
-              <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{user?.email}</div>
-            </div>
-            <div className="mb-4">
-              <label className="text-sm text-gray-500">Phone</label>
-              <input value={phone} onChange={(e)=>setPhone(e.target.value)} className="w-full p-3 rounded border mt-1" />
-            </div>
-            <div className="mt-6 flex gap-3">
-              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2 rounded-full bg-amber-600 text-white">Save</button>
-              <button onClick={() => setCurrentPage('home')} className="flex-1 px-4 py-2 rounded-full border border-amber-600 text-amber-600">Cancel</button>
+
+            <div className="lg:col-span-2">
+              <div className="p-6 bg-white profile-card shadow-lg">
+                <div className="-mx-6 -mt-6 mb-4 rounded-t-lg overflow-hidden">
+                  <div className="p-4 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 text-white text-center font-semibold">Profile</div>
+                </div>
+
+                <div className="space-y-6">
+                  <section>
+                    <h4 className="text-lg font-semibold mb-3">Account</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-500">Name</label>
+                        <input value={name} disabled className="w-full p-3 rounded-lg border profile-input mt-1 bg-gray-50 text-gray-700" title="Name cannot be changed" />
+                        <div className="text-xs text-gray-400 mt-1">Name cannot be changed here. Contact support if you need to update it.</div>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">Phone</label>
+                        <input placeholder="e.g. 9876543210" value={phone} onChange={(e)=>setPhone(e.target.value)} disabled={!isEditing} className={`w-full p-3 rounded-lg border profile-input mt-1 ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                        <div className="text-xs text-gray-400 mt-1">We may use this number for delivery and notifications.</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="text-sm text-gray-500">You can edit phone, addresses and password here.</div>
+                      <div className="flex gap-3">
+                        {!isEditing && (
+                          <button onClick={()=>setIsEditing(true)} className="px-5 py-2 rounded-full border">Edit profile</button>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-lg font-semibold mb-3">Address</h4>
+                      <div className="p-4 border rounded mb-3">
+                        <div className="text-sm text-gray-600 mb-2">Primary address</div>
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
+                          <input placeholder="Address line" value={primaryAddress.line1||''} onChange={(e)=>setPrimaryAddress(prev=>({ ...prev, line1: e.target.value }))} disabled={!isEditing} className={`col-span-3 p-2 rounded border ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                          <input placeholder="City" value={primaryAddress.city||''} onChange={(e)=>setPrimaryAddress(prev=>({ ...prev, city: e.target.value }))} disabled={!isEditing} className={`col-span-1 p-2 rounded border ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                          <input placeholder="State" value={primaryAddress.state||''} onChange={(e)=>setPrimaryAddress(prev=>({ ...prev, state: e.target.value }))} disabled={!isEditing} className={`col-span-1 p-2 rounded border ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                          <input placeholder="ZIP" value={primaryAddress.zip||''} onChange={(e)=>setPrimaryAddress(prev=>({ ...prev, zip: e.target.value }))} disabled={!isEditing} className={`col-span-1 p-2 rounded border ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {addresses.slice(1).map((a, idx) => (
+                          <div key={idx} className="p-4 border address-card grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
+                            <input placeholder="Address line" value={a.line1||''} onChange={(e)=>updateAddress(idx+1,'line1',e.target.value)} disabled={!isEditing} className={`col-span-4 p-2 rounded border ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                            <input placeholder="City" value={a.city||''} onChange={(e)=>updateAddress(idx+1,'city',e.target.value)} disabled={!isEditing} className={`col-span-1 p-2 rounded border ${!isEditing ? 'bg-gray-50 text-gray-600' : 'focus:border-amber-500'}`} />
+                            {isEditing && <button onClick={()=>removeAddress(idx+1)} className="col-span-1 px-3 py-2 rounded border text-red-600">Remove</button>}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-end">
+                        {isEditing && (
+                          <div className="flex gap-3">
+                            <button onClick={save} disabled={saving} className="px-5 py-2 rounded-full bg-gradient-to-r from-amber-600 to-yellow-500 text-white shadow profile-action">Save changes</button>
+                            <button onClick={cancelEdit} className="px-5 py-2 rounded-full border">Cancel</button>
+                          </div>
+                        )}
+                      </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-lg font-semibold mb-3">Change password</h4>
+                    <form onSubmit={changePassword} className="space-y-3">
+                      <input type="password" placeholder="Current password" value={currentPassword} onChange={(e)=>setCurrentPassword(e.target.value)} disabled={!isEditing} className="w-full p-3 rounded-lg border profile-input focus:border-amber-500" />
+                      <input type="password" placeholder="New password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} disabled={!isEditing} className="w-full p-3 rounded-lg border profile-input focus:border-amber-500" />
+                      <div className="flex gap-3">
+                        <button disabled={changingPassword || !isEditing} type="submit" className="px-4 py-2 rounded bg-gradient-to-r from-amber-600 to-yellow-500 text-white shadow">Change password</button>
+                        <button type="button" onClick={()=>{ setCurrentPassword(''); setNewPassword(''); }} className="px-4 py-2 rounded border">Reset</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <section>
+                    <h4 className="text-lg font-semibold mb-3">Recent Orders</h4>
+                    {loadingOrders ? (
+                      <div className="text-gray-500">Loading orders…</div>
+                    ) : orders.length === 0 ? (
+                      <div className="text-gray-500">No recent orders.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {orders.slice(0,6).map(o => (
+                          <div key={o._id} className="flex justify-between items-center p-3 rounded-lg border order-item">
+                            <div>
+                              <div className="font-semibold">{o.orderNumber || o._id}</div>
+                              <div className="text-sm text-gray-500">{new Date(o.createdAt).toLocaleString()}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold">रु{(o.total || 0).toLocaleString()}</div>
+                              <div className="text-sm text-amber-600">{o.orderStatus}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -3287,7 +3571,9 @@ function App() {
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button onClick={() => { setCurrentPage('orderDetail'); setSelectedOrderId(o._id); }} className="px-3 py-1 rounded-full bg-amber-600 text-white">View</button>
-                    <button onClick={() => { navigator.clipboard?.writeText(o.orderNumber || o._id); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Copy ID</button>
+                    {o.orderStatus === 'pending' && (
+                      <button onClick={() => { setCurrentPage('orderDetail'); setSelectedOrderId(o._id); setSelectedOrderEdit(true); }} className="px-3 py-1 rounded-full border border-amber-200 text-amber-700">Edit</button>
+                    )}
                   </div>
                 </div>
               ))}
