@@ -3177,6 +3177,22 @@ function App() {
       }
     } catch (e) {}
   }, []);
+
+  // Push state when currentPage or selectedOrderId changes so refresh keeps the same page (preserve order id)
+  useEffect(() => {
+    try {
+      let path;
+      if (currentPage === 'orderDetail' && selectedOrderId) {
+        path = `/order/${selectedOrderId}`;
+      } else {
+        path = pageToPath(currentPage);
+      }
+      const cur = window.location.pathname || '/';
+      if (cur !== path) {
+        window.history.pushState({}, document.title, path);
+      }
+    } catch (e) {}
+  }, [currentPage, selectedOrderId]);
   const OrderDetailPage = () => {
     const [order, setOrder] = useState(null);
     const [loadingOrder, setLoadingOrder] = useState(true);
