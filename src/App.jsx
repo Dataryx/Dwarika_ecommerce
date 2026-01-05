@@ -9,8 +9,7 @@ import {
   Menu,
   X,
   ChevronDown,
-  Sun,
-  Moon,
+  
   Sparkles,
   Award,
   Users,
@@ -22,12 +21,10 @@ import {
   Minus,
   Trash2,
   CreditCard,
-  Lock,
   Wallet,
-  Clock,
 } from "lucide-react";
 import { fetchProducts, fetchBanners, fetchShippingCharge, createOrder, registerUser, loginUser, getCurrentUser, fetchMyOrders, fetchOrderDetail, updateOrder, deleteOrder, updateProfile, verifyEmail, setPassword, forgotPassword } from "./utils/api.js";
-/* AnimatedTitle removed per request */
+/* AnimatedTitle intentionally removed to simplify header and reduce bundle size */
 
 const testimonials = [
   {
@@ -106,25 +103,6 @@ function App() {
     const bg = `hsl(${hue} 70% 70%)`;
     const fg = '#1f2937';
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' dy='.08em' text-anchor='middle' font-family='Inter, Roboto, Arial' font-size='48' fill='${fg}' font-weight='700'>${initials}</text></svg>`;
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  };
-  const generateRandomAvatarDataUrl = (name) => {
-    const initials = (name || 'U').split(' ').map(n => n[0] || '').join('').slice(0,2).toUpperCase() || 'U';
-    // random hue and two-tone pattern
-    const rand = () => Math.floor(Math.random()*360);
-    const hue1 = rand();
-    const hue2 = (hue1 + 60 + Math.floor(Math.random()*120)) % 360;
-    const bg1 = `hsl(${hue1} 65% 65%)`;
-    const bg2 = `hsl(${hue2} 60% 55%)`;
-    const fg = '#0f172a';
-    const shapes = [
-      `<rect width='100%' height='100%' fill='${bg1}'/>`,
-      `<linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='${bg1}'/><stop offset='1' stop-color='${bg2}'/></linearGradient><rect width='100%' height='100%' fill='url(#g)'/>`,
-      `<rect width='100%' height='100%' fill='${bg1}'/><circle cx='88' cy='40' r='40' fill='${bg2}' opacity='0.9'/>`,
-      `<rect width='100%' height='100%' fill='${bg2}'/><path d='M0 80 Q64 10 128 80 V128 H0z' fill='${bg1}' opacity='0.9'/>`
-    ];
-    const shape = shapes[Math.floor(Math.random()*shapes.length)];
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>${shape}<text x='50%' y='58%' dy='.08em' text-anchor='middle' font-family='Inter, Roboto, Arial' font-size='96' fill='${fg}' font-weight='800'>${initials}</text></svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   };
   // Load shipping charge from server (admin configurable)
@@ -664,7 +642,7 @@ function App() {
   };
 
   const Navbar = () => {
-    // Local search state INSIDE Navbar - this fixes everything!
+    // Local search state inside Navbar to control input before committing
     const [localTempQuery, setLocalTempQuery] = useState("");
 
     const localCommitSearch = () => {
@@ -755,7 +733,7 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Search Bar - NOW FULLY WORKING */}
+              {/* Search bar input and commit button */}
               <div className="relative">
                 <input
                   type="text"
@@ -1021,7 +999,7 @@ function App() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  // Debug: log shippingCharge changes
+  // Log shippingCharge changes for debugging
   useEffect(() => {
     console.debug && console.debug('shippingCharge state changed:', shippingCharge);
   }, [shippingCharge]);
@@ -3503,21 +3481,7 @@ function App() {
       }
     };
 
-    const randomizeAvatar = async () => {
-      try {
-        setSaving(true);
-        const dataUrl = generateRandomAvatarDataUrl(name || user?.name || 'U');
-        // Persist avatar (server accepts data URLs as avatar string)
-        await updateProfile({ avatar: dataUrl });
-        setUser(prev => prev ? { ...prev, avatar: dataUrl } : prev);
-        setAvatarPreview(dataUrl);
-        alert('Random avatar set');
-      } catch (err) {
-        alert(err?.message || 'Failed to set random avatar');
-      } finally {
-        setSaving(false);
-      }
-    };
+    
 
     
 
@@ -3902,7 +3866,7 @@ function App() {
       {currentPage === "home" && (
         <>
           <Hero />
-          {/* AnimatedTitle removed; badge now shows Dwarika Collection */}
+          {/* Hero badge: Dwarika Collection */}
           <Statistics />
           <FeaturedCollection />
           <Testimonials />

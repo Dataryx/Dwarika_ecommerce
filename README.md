@@ -1,3 +1,109 @@
+Dwarika — Small Jewelry E‑commerce (frontend + backend)
+
+Simple, practical e‑commerce app for jewelry with an admin dashboard to manage products, users, orders and banners.
+
+Purpose
+- Provide a lightweight storefront (React + Vite) and a Node/Express API backed by MongoDB.
+- Built to be easy to run locally for development and testing.
+
+Quick links
+- Frontend: `src/` (main app in `src/App.jsx`)
+- Backend: `server/` (Express API, models in `server/models`)
+- Admin UI: `src/admin/AdminDashboard.jsx`
+- API helpers: `src/utils/api.js`
+
+Prerequisites
+- Node.js (16+ recommended)
+- npm or yarn
+- MongoDB (local or remote)
+
+Local development
+
+1) Install dependencies
+
+```bash
+# root (frontend)
+npm install
+
+# backend
+cd server
+npm install
+```
+
+2) Configure server environment
+
+Create `server/.env` with at least:
+
+```
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/dwarika
+JWT_SECRET=replace-this-with-a-secure-secret
+```
+
+3) Start backend and frontend
+
+Open two terminals:
+
+```bash
+# terminal 1 — backend
+cd server
+npm run dev
+
+# terminal 2 — frontend (project root)
+npm run dev
+```
+
+Notes
+- The frontend will use Vite and typically run on `http://localhost:5173` (auto-selects if the port is busy).
+- If the backend fails to start because the port is in use, change `PORT` in `server/.env` or stop the other process.
+
+Admin setup
+- The repo includes `server/scripts/createAdmin.js` to create an initial admin user. Run from the `server/` folder:
+
+```bash
+node scripts/createAdmin.js
+# or provide email/password: node scripts/createAdmin.js admin@you.com strongpassword
+```
+
+Project structure (overview)
+
+```
+dwarika-main/
+├─ server/            # Express API, models, routes, utility scripts
+├─ src/               # React frontend (App.jsx is the main app)
+│  ├─ admin/          # admin dashboard UI
+│  └─ utils/          # API wrapper helpers
+├─ public/            # static assets
+└─ package.json       # frontend scripts/deps
+```
+
+Common commands
+
+- Install (root): `npm install`
+- Run frontend dev: `npm run dev`
+- Run backend dev: `cd server && npm run dev`
+- Build frontend: `npm run build`
+
+Where to look in the code
+- Frontend app boot: `src/main.jsx` → `src/App.jsx` (routes, pages and UI)
+- API calls & endpoints used by the UI: `src/utils/api.js`
+- Admin UI: `src/admin/AdminDashboard.jsx`
+- Server entry: `server/server.js`
+
+Troubleshooting quick tips
+- Backend EADDRINUSE: change `PORT` in `server/.env` or kill the process using the port.
+- MongoDB connection errors: verify `MONGODB_URI` and that MongoDB is reachable.
+- If frontend can't reach API, confirm `server` is running and `fetch` URLs in `src/utils/api.js` point to the right host/port.
+
+Contributing and notes
+- This repository is intended for private development. Keep secrets out of source control.
+- If you want a public license, add one (MIT/Apache/etc.) and update this file.
+
+Contact
+- For questions, check the `server/` README or open an issue with details and logs.
+
+---
+Updated README written to be concise and hand‑readable.
 # Dwarika E-commerce Platform
 
 A full-stack e-commerce platform for jewelry with a complete admin dashboard for managing products, users, orders, and banners.
