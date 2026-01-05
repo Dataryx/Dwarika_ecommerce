@@ -2728,6 +2728,22 @@ function AdminDashboard() {
     }
   };
 
+  const deleteOrderAdmin = async (id) => {
+    if (!confirm('Are you sure you want to delete this order?')) return;
+    try {
+      const response = await fetch(`${API_URL}/orders/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        loadOrders();
+        loadDashboardData();
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+    }
+  };
+
   const updateOrderStatus = async (orderId, status) => {
     try {
       const response = await fetch(`${API_URL}/orders/${orderId}`, {
@@ -3455,7 +3471,8 @@ function AdminDashboard() {
                       <th className="px-4 py-3 text-left">Price</th>
                       <th className="px-4 py-3 text-left">Stock</th>
                       <th className="px-4 py-3 text-left">Status</th>
-                      <th className="px-4 py-3 text-left">Actions</th>
+                      <th className="px-4 py-3 text-left">View</th>
+                      <th className="px-4 py-3 text-left">Delete</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3793,8 +3810,13 @@ function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => setSelectedOrder(order)} className="text-amber-600 hover:text-amber-800">
+                          <button onClick={() => setSelectedOrder(order)} className="text-amber-600 hover:text-amber-800 mr-1">
                             <Eye size={18} />
+                          </button>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => deleteOrderAdmin(order._id)} className="text-red-600 hover:text-red-800">
+                            <Trash2 size={18} />
                           </button>
                         </td>
                       </tr>
